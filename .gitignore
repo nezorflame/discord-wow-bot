@@ -22,3 +22,9 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# binary
+discord*
+
+# vscode Folders
+.vscode/
