@@ -21,7 +21,7 @@ const (
     Relics      = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
     RGB         = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
     RealmOn     = "Сервер онлайн! :)"
-    RealmOff    = "Сервер оффлайн! :()"
+    RealmOff    = "Сервер оффлайн! :("
 )
 
 var (
@@ -144,35 +144,37 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
     // Check the command to answer
     if strings.HasPrefix(m.Content, "!status") {
-        realmString := strings.Split(m.Content, " ")
-        realmStatus, err := getWoWRealmStatus(realmString[1])
-        panicOnErr(err)
+        realmString := strings.Replace(m.Content, "!status ", "", 1)
+        logInfo(realmString)
+        realmStatus, err := getWoWRealmStatus(realmString)
+        if err != nil {
+            logInfo(err)
+        }
         switch realmStatus {
             case true:
-                err = sendMessage(s, m.ChannelID, RealmOn)
+                err := sendMessage(s, m.ChannelID, RealmOn)
                 panicOnErr(err)
             default:
-                err = sendMessage(s, m.ChannelID, RealmOff)
+                err := sendMessage(s, m.ChannelID, RealmOff)
                 panicOnErr(err)
         }
-    }
-    switch m.Content {
-        case "!ping":
-            err := sendMessage(s, m.ChannelID, Pong)
-            panicOnErr(err)
-        case "!johncena":
-            err := sendMessage(s, m.ChannelID, JohnCena)
-            panicOnErr(err)
-        case "!status":
-            getWoWRealmStatus("")
-        case "!relics":
-            err := sendMessage(s, m.ChannelID, Relics)
-            panicOnErr(err)
-        case "!godbook":
-            err := sendMessage(s, m.ChannelID, RGB)
-            panicOnErr(err)
-        default:
-            log.Println("not a command")
+    } else {
+        switch m.Content {
+            case "!ping":
+                err := sendMessage(s, m.ChannelID, Pong)
+                panicOnErr(err)
+            case "!johncena":
+                err := sendMessage(s, m.ChannelID, JohnCena)
+                panicOnErr(err)
+            case "!relics":
+                err := sendMessage(s, m.ChannelID, Relics)
+                panicOnErr(err)
+            case "!godbook":
+                err := sendMessage(s, m.ChannelID, RGB)
+                panicOnErr(err)
+            default:
+                log.Println("not a command")
+        }
     }
 }
 
@@ -191,17 +193,17 @@ func containsUser(users []*discordgo.User, userID string) bool {
 }
 
 func getWoWRealms() {
-    r, err := http.Get("https://us.api.battle.net/wow/realm/status?locale=en_US&apikey=fdvxqkq6qkq364brvgkwuur73u5dncw8")
+    r, err := http.Get("https://eu.api.battle.net/wow/realm/status?locale=ru_RU&apikey=fdvxqkq6qkq364brvgkwuur73u5dncw8")
     panicOnErr(err)
     defer r.Body.Close()
     body, err := ioutil.ReadAll(r.Body)
     panicOnErr(err)
-    realmsResponse, err := getRealms([]byte(body))
+    realmsResponse, err := getRealmsAPIResponse([]byte(body))
     panicOnErr(err)
     Realms = realmsResponse.RealmList
 }
 
-func getRealms(body []byte) (*RealmsAPIResponse, error) {
+func getRealmsAPIResponse(body []byte) (*RealmsAPIResponse, error) {
     var s = new(RealmsAPIResponse)
     err := json.Unmarshal(body, &s)
     panicOnErr(err)
