@@ -172,7 +172,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
             panicOnErr(err)
         case "!roster":
             printMessageByID(s, m.ChannelID, GuildRosterMID)
-        case "!help":
+        case "!help", "!помощь":
             helpReporter(s, m)
         case "!!printpinned":
             logPinnedMessages(s)
@@ -182,16 +182,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("Sending help to user...")
 
-    help := "Команды бота:\n\n"
-    help += "Общая инфа для прокачки и рейдов:\n"
-    help += "!roster - текущий рейдовый состав\n"
-    help += "!godbook - мега-гайд по Легиону\n"
-    help += "!relics - гайдик по реликам на все спеки\n\n"
-    help += "Команды для WoW'a:\n"
-    help += "!status _имя сервера_ - текущий статус сервера; если не указывать имя - отобразится для РФа\n"
-    help += "!queue _имя сервера_ - текущий статус очереди на сервер; если не указывать имя - отобразится для РФа\n"
-    help += "!realminfo _имя сервера_ - вся инфа по выбранному серверу; если не указывать имя - отобразится для РФа\n\n"    
-    help += "С вопросами и предложениями обращаться к Аэтерису (Илье)\n"
+    help := "__**Команды бота:**__\n\n"
+    help += "__Общая инфа для прокачки и рейдов:__\n"
+    help += "**!roster** - текущий рейдовый состав\n"
+    help += "**!godbook** - мега-гайд по Легиону\n"
+    help += "**!relics** - гайдик по реликам на все спеки\n\n"
+    help += "__Команды для WoW'a:__\n"
+    help += "**!status** ***имя_сервера*** - текущий статус сервера; если не указывать имя - отобразится для РФа\n"
+    help += "**!queue** ***имя_сервера*** - текущий статус очереди на сервер; если не указывать имя - отобразится для РФа\n"
+    help += "**!realminfo** ***имя_сервера*** - вся инфа по выбранному серверу; если не указывать имя - отобразится для РФа\n\n"    
+    help += "С вопросами и предложениями обращаться к **Аэтерису (Илье)**.\n"
     help += "Хорошего кача и удачи в борьбе с Легионом! :smile:"
 
     err := sendMessage(s, m.ChannelID, help)
