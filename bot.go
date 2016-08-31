@@ -2,70 +2,50 @@ package main
 
 import (
     "flag"
-    "fmt"
     "strings"
     "log"
     "time"
     "os"
-    "errors"
-    "net/http"
-    "encoding/json"
-    "io/ioutil"
     "github.com/bwmarrin/discordgo"
+    "github.com/nezorflame/discord-wow-bot/wow"
 )
 
 const (
-    // global consts
-    Pong        = "Pong!"
-    JohnCena    = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
-    Relics      = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
-    RGB         = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
-    RealmOn     = "Сервер онлайн! :)"
-    RealmOff    = "Сервер оффлайн! :("
+    Pong            = "Pong!"
+    JohnCena        = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
+    Relics          = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
+    RGB             = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
+    RealmOn         = "Сервер онлайн! :smile:"
+    RealmOff        = "Сервер оффлайн :pensive:"
+    RealmHasQueue   = "На сервере очередь, готовься идти делать чай :pensive:"
+    RealmHasNoQueue = "Очередей нет, можно заходить! :smile:"
+
+    GuildRosterMID  = "218849158721830912"
 )
 
 var (
-    logger      *log.Logger
-    startTime   time.Time
-	// Token for bot auth
-    Token       string
-    // BotID for bot ID
-    BotID       string
-    // Realms is a structure array for WoW realms
-    Realms      []Realm
+    logger              *log.Logger
+    discordToken        string
+    wowToken            string
+    mainChannelID       string
+    botID               string
 )
-
-// Realm - type for WoW server realm info
-type Realm struct {
-    Type            string      `json:"type"`
-    Population      string      `json:"population"`
-    Queue           bool        `json:"queue"`
-    Status          bool        `json:"status"`
-    Name            string      `json:"name"`
-    Slug            string      `json:"slug"`
-    Battlegroup     string      `json:"battlegroup"`
-    Locale          string      `json:"locale"`
-    Timezone        string      `json:"timezone"`
-    ConnectedRealms []string    `json:"connected_realms"`
-}
-// RealmsAPIResponse is a struct for slice of Realm
-type RealmsAPIResponse struct {
-    RealmList []Realm `json:"realms"`
-}
 
 func init() {
     // Create initials.
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
-	startTime = time.Now()
-    getWoWRealms()
 
     // Parse command line arguments.
-    flag.StringVar(&Token, "t", "", "Account Token")
+    flag.StringVar(&discordToken, "dt", "", "Account Token")
+    flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
+    flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
     flag.Parse()
-    if Token == "" {
+    if discordToken == "" || wowToken == "" || mainChannelID == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
+
+    wow.InitializeWoWAPI(&wowToken)
 }
 
 func logDebug(v ...interface{}) {
@@ -116,71 +96,154 @@ func sendMessage(session *discordgo.Session, chID string, message string) error 
     return nil
 }
 
+func logPinnedMessages(s *discordgo.Session) {
+    logInfo("getPinnedMessages called")
+    pinned, err := s.ChannelMessagesPinned(mainChannelID)
+    panicOnErr(err)
+    logInfo(len(pinned), "messages are pinned:")
+    for _, message := range pinned {
+        logInfo("[" + message.ID + "]", message.Content)
+    }
+}
+
+func printMessageByID(s *discordgo.Session, chID string, mesID string) {
+    logInfo("printMessageByID called")
+    message, err := s.ChannelMessage(mainChannelID, mesID)
+    if err != nil {
+        logInfo("printMessageByID error: ", err)
+        return
+    }
+    err = sendMessage(s, chID, message.Content)
+    panicOnErr(err)
+}
+
 func main() {
     logInfo("Logging in...")
-    session, err := discordgo.New(Token)
+    session, err := discordgo.New(discordToken)
     logInfo("Using bot account token...")
     u, err := session.User("@me")
     panicOnErr(err)
-    BotID = u.ID
-    logInfo("Got BotID =", BotID)
-    logInfo("session token is " + session.Token)
+    botID = u.ID
+    logInfo("Got BotID =", botID)
     setupHandlers(session)
 	panicOnErr(err)
     logInfo("Opening session...")
 	err = session.Open()
 	panicOnErr(err)
-	fmt.Println("Bot is now running.\nPress CTRL-C to exit...")
+	logInfo("Bot is now running.\nPress CTRL-C to exit...")
 	<-make(chan struct{})
 	return
+}
+
+func setupHandlers(session *discordgo.Session) {
+	logInfo("Setting up event handlers...")
+	session.AddHandler(messageCreate)
 }
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
-	if m.Author.ID == BotID {
+	if m.Author.ID == botID {
 		return
 	}
     // Check the command to answer
     if strings.HasPrefix(m.Content, "!status") {
-        realmString := strings.Replace(m.Content, "!status ", "", 1)
-        logInfo(realmString)
-        realmStatus, err := getWoWRealmStatus(realmString)
-        if err != nil {
-            logInfo(err)
-        }
-        switch realmStatus {
-            case true:
-                err := sendMessage(s, m.ChannelID, RealmOn)
-                panicOnErr(err)
-            default:
-                err := sendMessage(s, m.ChannelID, RealmOff)
-                panicOnErr(err)
-        }
-    } else {
-        switch m.Content {
-            case "!ping":
-                err := sendMessage(s, m.ChannelID, Pong)
-                panicOnErr(err)
-            case "!johncena":
-                err := sendMessage(s, m.ChannelID, JohnCena)
-                panicOnErr(err)
-            case "!relics":
-                err := sendMessage(s, m.ChannelID, Relics)
-                panicOnErr(err)
-            case "!godbook":
-                err := sendMessage(s, m.ChannelID, RGB)
-                panicOnErr(err)
-            default:
-                log.Println("not a command")
-        }
+        statusReporter(s, m)
+    }
+    if strings.HasPrefix(m.Content, "!queue") {
+        queueReporter(s, m)
+    }
+    if strings.HasPrefix(m.Content, "!realminfo") {
+        realmInfoReporter(s, m)
+    }
+    switch m.Content {
+        case "!ping":
+            err := sendMessage(s, m.ChannelID, Pong)
+            panicOnErr(err)
+        case "!johncena":
+            err := sendMessage(s, m.ChannelID, JohnCena)
+            panicOnErr(err)
+        case "!relics":
+            err := sendMessage(s, m.ChannelID, Relics)
+            panicOnErr(err)
+        case "!godbook":
+            err := sendMessage(s, m.ChannelID, RGB)
+            panicOnErr(err)
+        case "!roster":
+            printMessageByID(s, m.ChannelID, GuildRosterMID)
+        case "!help":
+            helpReporter(s, m)
+        case "!!printpinned":
+            logPinnedMessages(s)
     }
 }
 
-func setupHandlers(session *discordgo.Session) {
-	logInfo("Setting up event handlers...")
-	session.AddHandler(messageCreate)
+func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("Sending help to user...")
+
+    help := "Команды бота:\n\n"
+    help += "Общая инфа для прокачки и рейдов:\n"
+    help += "!roster - текущий рейдовый состав\n"
+    help += "!godbook - мега-гайд по Легиону\n"
+    help += "!relics - гайдик по реликам на все спеки\n\n"
+    help += "Команды для WoW'a:\n"
+    help += "!status _имя сервера_ - текущий статус сервера; если не указывать имя - отобразится для РФа\n"
+    help += "!queue _имя сервера_ - текущий статус очереди на сервер; если не указывать имя - отобразится для РФа\n"
+    help += "!realminfo _имя сервера_ - вся инфа по выбранному серверу; если не указывать имя - отобразится для РФа\n\n"    
+    help += "С вопросами и предложениями обращаться к Аэтерису (Илье)\n"
+    help += "Хорошего кача и удачи в борьбе с Легионом! :smile:"
+
+    err := sendMessage(s, m.ChannelID, help)
+    panicOnErr(err)
+}    
+
+func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("getting realm name string...")
+    realmString := wow.GetRealmName(m.Content, "!status")
+    logInfo(realmString)
+    logInfo("getting realm status and sending it...")
+    realmStatus, err := wow.GetWoWRealmStatus(realmString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+    } else if realmStatus {
+        err := sendMessage(s, m.ChannelID, RealmOn)
+        panicOnErr(err)
+    } else {
+        err := sendMessage(s, m.ChannelID, RealmOff)
+        panicOnErr(err)
+    }
+}
+
+func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("getting realm name string...")
+    realmString := wow.GetRealmName(m.Content, "!queue")
+    logInfo(realmString)
+    logInfo("getting realm queue status and sending it...")
+    realmQueue, err := wow.GetWoWRealmQueueStatus(realmString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+    } else if realmQueue {
+        err := sendMessage(s, m.ChannelID, RealmHasQueue)
+        panicOnErr(err)
+    } else {
+        err := sendMessage(s, m.ChannelID, RealmHasNoQueue)
+        panicOnErr(err)
+    }
+}
+
+func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("getting realm name string...")
+    realmString := wow.GetRealmName(m.Content, "!realminfo")
+    logInfo(realmString)
+    logInfo("getting realm info and sending it...")
+    realmInfo, err := wow.GetWoWRealmInfo(realmString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+    } else {
+        err := sendMessage(s, m.ChannelID, realmInfo)
+        panicOnErr(err)
+    }
 }
 
 func containsUser(users []*discordgo.User, userID string) bool {
@@ -190,31 +253,4 @@ func containsUser(users []*discordgo.User, userID string) bool {
         }
     }
     return false
-}
-
-func getWoWRealms() {
-    r, err := http.Get("https://eu.api.battle.net/wow/realm/status?locale=ru_RU&apikey=fdvxqkq6qkq364brvgkwuur73u5dncw8")
-    panicOnErr(err)
-    defer r.Body.Close()
-    body, err := ioutil.ReadAll(r.Body)
-    panicOnErr(err)
-    realmsResponse, err := getRealmsAPIResponse([]byte(body))
-    panicOnErr(err)
-    Realms = realmsResponse.RealmList
-}
-
-func getRealmsAPIResponse(body []byte) (*RealmsAPIResponse, error) {
-    var s = new(RealmsAPIResponse)
-    err := json.Unmarshal(body, &s)
-    panicOnErr(err)
-    return s, err
-}
-
-func getWoWRealmStatus(realmName string) (bool, error) {
-    for _, r := range Realms {
-        if r.Name == realmName || r.Slug == realmName {
-            return r.Status, nil
-        }
-    }
-    return false, errors.New("No such realm is present!")
 }
