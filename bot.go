@@ -176,6 +176,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
             helpReporter(s, m)
         case "!!printpinned":
             logPinnedMessages(s)
+        case "!boobs":
+            err := sendMessage(s, m.ChannelID, "Покажи фанатам сиськи! :smile:\nhttps://giphy.com/gifs/gene-wilder-z88aYORoi8fQc ")
+            panicOnErr(err)
     }
 }
 
