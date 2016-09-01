@@ -157,6 +157,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     if strings.HasPrefix(m.Content, "!realminfo") {
         realmInfoReporter(s, m)
     }
+    if strings.HasPrefix(m.Content, "!guildmembers") {
+        guildMembersReporter(s, m)
+    }
     switch m.Content {
         case "!ping":
             err := sendMessage(s, m.ChannelID, Pong)
@@ -188,7 +191,8 @@ func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("Sending help to user...")
 
     help := "__**Команды бота:**__\n\n"
-    help += "__Общая инфа для прокачки и рейдов:__\n"
+    help += "__Общая инфа о гильдии и по прокачке:__\n"
+    help += "**!guildmembers** - состав гильдии\n"
     help += "**!roster** - текущий рейдовый состав\n"
     help += "**!godbook** - мега-гайд по Легиону\n"
     help += "**!relics** - гайдик по реликам на все спеки\n\n"
@@ -208,7 +212,7 @@ func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     realmString := wow.GetRealmName(m.Content, "!status")
     logInfo(realmString)
     logInfo("getting realm status and sending it...")
-    realmStatus, err := wow.GetWoWRealmStatus(realmString)
+    realmStatus, err := wow.GetRealmStatus(realmString)
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmStatus {
@@ -225,7 +229,7 @@ func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     realmString := wow.GetRealmName(m.Content, "!queue")
     logInfo(realmString)
     logInfo("getting realm queue status and sending it...")
-    realmQueue, err := wow.GetWoWRealmQueueStatus(realmString)
+    realmQueue, err := wow.GetRealmQueueStatus(realmString)
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmQueue {
@@ -237,12 +241,30 @@ func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     }
 }
 
+func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("getting realm and guild name strings...")
+    realmString, guildNameString, err := wow.GetRealmAndGuildNames(m.Content, "!guildmembers")
+    logInfo(realmString, guildNameString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+        return
+    }
+    logInfo("getting guild members list and sending it...")
+    guildMembersInfo, err := wow.GetGuildMembers(realmString, guildNameString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+        return
+    }
+    err = sendMessage(s, m.ChannelID, guildMembersInfo)
+    panicOnErr(err)
+}
+
 func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("getting realm name string...")
     realmString := wow.GetRealmName(m.Content, "!realminfo")
     logInfo(realmString)
     logInfo("getting realm info and sending it...")
-    realmInfo, err := wow.GetWoWRealmInfo(realmString)
+    realmInfo, err := wow.GetRealmInfo(realmString)
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
     } else {
