@@ -8,6 +8,7 @@ import (
     "os"
     "github.com/bwmarrin/discordgo"
     "github.com/nezorflame/discord-wow-bot/wow"
+    "github.com/arteev/fmttab"
 )
 
 const (
@@ -120,15 +121,26 @@ func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage s
                 for j := 1; j < l - 1; j++ {
                     mes += "\n" + messageSlice[j]
                     if len(mes + "\n" + messageSlice[j+1]) > 1999 {
-                        _, err = session.ChannelMessageSend(chID, mes)
+                        if strings.HasPrefix(mes, "```") {
+                            _, err = session.ChannelMessageSend(chID, mes + "```")
+                        } else {
+                            _, err = session.ChannelMessageSend(chID, mes)
+                        }
                         if err != nil {
                             return err
                         }
                         message = strings.Replace(message, mes, "", 1)
+                        if strings.HasPrefix(mes, "```") {
+                            message = "```" + message
+                        }
                         break Loop
                     }
                 }
             i = len(message)
+        }
+        _, err = session.ChannelMessageSend(chID, message)
+        if err != nil {
+            return err
         }
     } else {
         _, err = session.ChannelMessageSend(chID, fullMessage)
@@ -299,7 +311,23 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         sendMessage(s, m.ChannelID, err.Error())
         return
     }
-    err = sendMessage(s, m.ChannelID, guildMembersInfo)
+    tab := fmttab.New("Список согильдейцев", fmttab.BorderDouble, nil)
+    tab.AddColumn("Имя",fmttab.WidthAuto,fmttab.AlignLeft).
+        AddColumn("Уровень",10,fmttab.AlignLeft).
+        AddColumn("Класс",25,fmttab.AlignLeft).
+        AddColumn("Специализация",20,fmttab.AlignLeft).
+        AddColumn("Уровень предметов",20,fmttab.AlignLeft)
+    for _, member := range guildMembersInfo {
+        tab.AppendData(map[string]interface{} {
+            "Имя" : member["Name"],
+            "Уровень" : member["Level"],
+            "Класс" : member["Class"],
+            "Специализация" : member["Spec"],
+            "Уровень предметов" : member["ItemLevel"],
+        })
+    }
+    err = sendMessage(s, m.ChannelID, "```" + tab.String() + "```")
+    logInfo(len(tab.String()))
     panicOnErr(err)
 }
 
@@ -318,7 +346,22 @@ func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         sendMessage(s, m.ChannelID, err.Error())
         return
     }
-    err = sendMessage(s, m.ChannelID, guildProfsInfo)
+    tab := fmttab.New("Список профессий в гильдии", fmttab.BorderDouble, nil)
+    tab.AddColumn("Имя",fmttab.WidthAuto,fmttab.AlignLeft).
+        AddColumn("1 профа",15,fmttab.AlignLeft).
+        AddColumn("Уровень 1 профы",15,fmttab.AlignLeft).
+        AddColumn("2 профа",15,fmttab.AlignLeft).
+        AddColumn("Уровень 2 профы",15,fmttab.AlignLeft)
+    for _, member := range guildProfsInfo {
+        tab.AppendData(map[string]interface{} {
+            "Имя" : member["Name"],
+            "1 профа" : member["FirstProf"],
+            "Уровень 1 профы" : member["FirstProfLevel"],
+            "2 профа" : member["SecondProf"],
+            "Уровень 2 профы" : member["SecondProfLevel"],
+        })
+    }
+    err = sendMessage(s, m.ChannelID, "```" + tab.String() + "```")
     panicOnErr(err)
 }
 

@@ -247,81 +247,80 @@ func GetRealmInfo(realmName string) (string, error) {
 }
 
 // GetGuildMembers - function for receiving a list of guild members
-func GetGuildMembers(realmName string, guildName string) (string, error) {
-    characterStringPreset := "**%v**    **%d** %v (%v)    **%d**\n"
-    guildMembersString := "__**Имя         Уровень, класс и текущий спек    Уровень вещей**__\n\n"
-
+func GetGuildMembers(realmName string, guildName string) ([]map[string]string, error) {
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
-        return "", err
+        return nil, err
     }
     gMembers, err = getAdditionalMembers(gMembers)
 
-    guildMembersList := make(map[string]string)
+    var guildMembersList []map[string]string
+    gMembersMap := make(map[string]map[string]string)
     var keys []string
+
     for _, m := range *gMembers {
-        var charString string
-        specName := m.Member.Spec.Name
-        if specName == "" {
-            specName = "Нет инфы"
+        gMember := make(map[string]string)
+        gMember["Name"] = m.Member.Name
+        gMember["Level"] = strconv.Itoa(m.Member.Level)
+        gMember["Class"] = m.Member.Class
+        if specName := m.Member.Spec.Name; specName != "" {
+            gMember["Spec"] = specName
+        } else {
+            gMember["Spec"] = "Нет инфы"
         }
-        charString = fmt.Sprintf(characterStringPreset,
-                                  m.Member.Name,
-                                  m.Member.Level,
-                                  m.Member.Class,
-                                  specName,
-                                  m.Member.Items.AvgItemLvlEq)
-        guildMembersList[m.Member.Name] = charString
+        gMember["ItemLevel"] = strconv.Itoa(m.Member.Items.AvgItemLvlEq)
+        gMembersMap[m.Member.Name] = gMember
         keys = append(keys, m.Member.Name)
     }
+
     sort.Strings(keys)
     for _, k := range keys {
-        guildMembersString += guildMembersList[k]
+        guildMembersList = append(guildMembersList, gMembersMap[k])
     }
-    return guildMembersString, nil
+    return guildMembersList, nil
 }
 
 // GetGuildProfs - function for receiving a list of guild professions
-func GetGuildProfs(realmName string, guildName string) (string, error) {
-    characterStringPreset := "**%v**    %v\n"
-    guildProfsString := "__**Имя         Профессии**__\n\n"
-
+func GetGuildProfs(realmName string, guildName string) ([]map[string]string, error) {
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
-        return "", err
+        return nil, err
     }
     gMembers, err = getAdditionalMembers(gMembers)
 
-    guildProfsList := make(map[string]string)
+    var guildProfsList []map[string]string
+    gMembersMap := make(map[string]map[string]string)
     var keys []string
+
     for _, m := range *gMembers {
-        var charString string
+        gMember := make(map[string]string)
+        gMember["Name"] = m.Member.Name
         switch len(m.Member.Professions.PrimaryProfs) {
             case 0:
-                charString = fmt.Sprintf(characterStringPreset,
-                                  m.Member.Name,
-                                  "Нет проф!")
+                gMember["FirstProf"] = "Нет"
+                gMember["FirstProfLevel"] = " "
+                gMember["SecondProf"] = "Нет"
+                gMember["SecondProfLevel"] = " "
             case 1:
-                charString = fmt.Sprintf(characterStringPreset,
-                                  m.Member.Name,
-                                  m.Member.Professions.PrimaryProfs[0].Name + " (" +
-                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + ")")
+                gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
+                gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank)
+                gMember["SecondProf"] = "Нет"
+                gMember["SecondProfLevel"] = " "
             case 2:
-                charString = fmt.Sprintf(characterStringPreset,
-                                  m.Member.Name,
-                                  m.Member.Professions.PrimaryProfs[0].Name + " (" +
-                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + "), " +
-                                  m.Member.Professions.PrimaryProfs[1].Name + " (" +
-                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[1].Rank) + ")")
+                gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
+                gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank)
+                gMember["SecondProf"] = m.Member.Professions.PrimaryProfs[1].Name
+                gMember["SecondProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[1].Rank)
         }
-        guildProfsList[m.Member.Name] = charString
+        gMembersMap[m.Member.Name] = gMember
         keys = append(keys, m.Member.Name)
     }
+
     sort.Strings(keys)
     for _, k := range keys {
-        guildProfsString += guildProfsList[k]
+        guildProfsList = append(guildProfsList, gMembersMap[k])
     }
-    return guildProfsString, nil
+    return guildProfsList, nil
 }
 
 // GetRealmName returns realm name string
