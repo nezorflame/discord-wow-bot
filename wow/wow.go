@@ -4,6 +4,8 @@ import (
     "fmt"
     "errors"
     "strings"
+    "strconv"
+    "sort"
     "net/http"
     "encoding/json"
     "io/ioutil"
@@ -22,6 +24,7 @@ const (
     apiRealmsLink       = "https://%v.api.battle.net/wow/realm/status?locale=%v&apikey=%v"
     apiGuildMembersLink = "https://%v.api.battle.net/wow/guild/%v/%v?fields=members&locale=%v&apikey=%v"
     apiCharacterItems   = "https://%v.api.battle.net/wow/character/%v/%v?fields=items&locale=%v&apikey=%v"
+    apiCharacterProfs   = "https://%v.api.battle.net/wow/character/%v/%v?fields=professions&locale=%v&apikey=%v"
 )
 
 // Realm - type for WoW server realm info
@@ -83,6 +86,7 @@ type Character struct {
     GuildRealm          string          `json:"guildRealm"` 
     LastModified        int             `json:"lastModified"`
     Items               Items           `json:"items"`
+    Professions         Professions     `json:"professions"`
 }
 
 // Specialization - struct for a WoW character specialization
@@ -101,11 +105,28 @@ type Items struct {
     AvgItemLvlEq        int             `json:"averageItemLevelEquipped"`
 }
 
+// Professions - struct for professions info for a character
+type Professions struct {
+    PrimaryProfs        []Profession    `json:"primary"`
+    SecondaryProfs      []Profession    `json:"secondary"`
+}
+
+// Profession - struct for a profession info for a character
+type Profession struct {
+    ID                  int             `json:"id"`
+    Name                string          `json:"name"`
+    Icon                string          `json:"icon"`
+    Rank                int             `json:"rank"`
+    Max                 int             `json:"max"`
+    Recipes             []int           `json:"recipes"`
+}
+
 var (
     classes             map[int]string
     factions            map[int]string
     races               map[int]string
     genders             map[int]string
+    addMembers          map[string]map[string]string
 )
 
 func logDebug(v ...interface{}) {
@@ -170,7 +191,10 @@ func InitializeWoWAPI(token *string) {
         24 : "Пандарен",
         25 : "Пандарен",
         26 : "Пандарен",
-    } 
+    }
+    addMembers = map[string]map[string]string{
+        "Stormscale" : {"The Timekeepers" : "Madmaid"},
+    }
 }
 
 // GetRealmStatus - function for receiving realm status
@@ -224,29 +248,80 @@ func GetRealmInfo(realmName string) (string, error) {
 
 // GetGuildMembers - function for receiving a list of guild members
 func GetGuildMembers(realmName string, guildName string) (string, error) {
-    guildMembersList := "__**Имя         Уровень, раса, класс и текущий спек    Уровень вещей**__\n\n"
-    characterStringPreset := "**%v**    __%d %v %v (%v)__    **%d**\n"
+    characterStringPreset := "**%v**    **%d** %v (%v)    **%d**\n"
+    guildMembersString := "__**Имя         Уровень, класс и текущий спек    Уровень вещей**__\n\n"
 
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
         return "", err
     }
+    gMembers, err = getAdditionalMembers(gMembers)
 
+    guildMembersList := make(map[string]string)
+    var keys []string
     for _, m := range *gMembers {
+        var charString string
         specName := m.Member.Spec.Name
         if specName == "" {
             specName = "Нет инфы"
         }
-        charString := fmt.Sprintf(characterStringPreset,
+        charString = fmt.Sprintf(characterStringPreset,
                                   m.Member.Name,
                                   m.Member.Level,
-                                  m.Member.Race,
                                   m.Member.Class,
                                   specName,
                                   m.Member.Items.AvgItemLvlEq)
-        guildMembersList += charString
+        guildMembersList[m.Member.Name] = charString
+        keys = append(keys, m.Member.Name)
     }
-    return guildMembersList, nil
+    sort.Strings(keys)
+    for _, k := range keys {
+        guildMembersString += guildMembersList[k]
+    }
+    return guildMembersString, nil
+}
+
+// GetGuildProfs - function for receiving a list of guild professions
+func GetGuildProfs(realmName string, guildName string) (string, error) {
+    characterStringPreset := "**%v**    %v\n"
+    guildProfsString := "__**Имя         Профессии**__\n\n"
+
+    gMembers, err := getGuildMembers(&realmName, &guildName)
+    if err != nil {
+        return "", err
+    }
+    gMembers, err = getAdditionalMembers(gMembers)
+
+    guildProfsList := make(map[string]string)
+    var keys []string
+    for _, m := range *gMembers {
+        var charString string
+        switch len(m.Member.Professions.PrimaryProfs) {
+            case 0:
+                charString = fmt.Sprintf(characterStringPreset,
+                                  m.Member.Name,
+                                  "Нет проф!")
+            case 1:
+                charString = fmt.Sprintf(characterStringPreset,
+                                  m.Member.Name,
+                                  m.Member.Professions.PrimaryProfs[0].Name + " (" +
+                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + ")")
+            case 2:
+                charString = fmt.Sprintf(characterStringPreset,
+                                  m.Member.Name,
+                                  m.Member.Professions.PrimaryProfs[0].Name + " (" +
+                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + "), " +
+                                  m.Member.Professions.PrimaryProfs[1].Name + " (" +
+                                  strconv.Itoa(m.Member.Professions.PrimaryProfs[1].Rank) + ")")
+        }
+        guildProfsList[m.Member.Name] = charString
+        keys = append(keys, m.Member.Name)
+    }
+    sort.Strings(keys)
+    for _, k := range keys {
+        guildProfsString += guildProfsList[k]
+    }
+    return guildProfsString, nil
 }
 
 // GetRealmName returns realm name string
@@ -287,9 +362,9 @@ func getRealms() (*[]Realm, error) {
 }
 
 func getGuildMembers(guildRealm *string, guildName *string) (*[]GuildMember, error) {
+    logInfo("getting main guild members...")
     apiLink := fmt.Sprintf(apiGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
-        *guildName, locale, apiToken)
-    logInfo(apiLink)
+        strings.Replace(*guildName, " ", "%20", -1), locale, apiToken)
     r, err := http.Get(apiLink)
     panicOnErr(err)
     defer r.Body.Close()
@@ -303,6 +378,36 @@ func getGuildMembers(guildRealm *string, guildName *string) (*[]GuildMember, err
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
     return refillMembers(&members), nil
+}
+
+func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
+    logInfo("getting additional guild members...")
+    var addGMembers = new([]GuildMember)
+    for _, m := range *guildMembers {
+        *addGMembers = append(*addGMembers, m)
+    }
+    for realm, m := range addMembers {
+        for guild, character := range m {
+            apiLink := fmt.Sprintf(apiGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1), 
+                strings.Replace(guild, " ", "%20", -1), locale, apiToken)
+            r, err := http.Get(apiLink)
+            panicOnErr(err)
+            defer r.Body.Close()
+            body, err := ioutil.ReadAll(r.Body)
+            panicOnErr(err)
+            addGInfo, err := getGuildMembersFromJSON([]byte(body))
+            if err != nil {
+                return nil, err
+            }
+            for _, member := range addGInfo.GuildMembersList {
+                if member.Member.Name == character {
+                    *addGMembers = append(*addGMembers, member)
+                }
+            }
+        }
+    }
+    // Fill string valuables
+    return refillMembers(addGMembers), nil
 }
 
 func refillMembers(members *[]GuildMember) *[]GuildMember {
@@ -326,13 +431,15 @@ func updateCharacter(member *GuildMember, c chan GuildMember) {
     m.Member.Gender = genders[m.Member.GenderInt]
     m.Member.Race   = races[m.Member.RaceInt]
     items, err := getCharacterItems(&m.Member.Realm, &m.Member.Name)
+    professions, err := getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
     if (err != nil) {
         c <- m
         return
     }
-    newMember.Member        = m.Member
-    newMember.Member.Items  = *items
-    newMember.Rank          = m.Rank
+    newMember.Member                = m.Member
+    newMember.Member.Items          = *items
+    newMember.Member.Professions    = *professions
+    newMember.Rank                  = m.Rank
     c <- *newMember
 }
 
@@ -347,11 +454,30 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
     defer r.Body.Close()
     body, err := ioutil.ReadAll(r.Body)
     panicOnErr(err)
-    character, err := getCharacterWithItemsFromJSON([]byte(body))
+    character, err := getCharacterFromJSON([]byte(body))
     if err != nil {
         return nil, err
     }
     return &character.Items, nil
+}
+
+func getCharacterProfessions(characterRealm *string, characterName *string) (*Professions, error) {
+    apiLink := fmt.Sprintf(apiCharacterProfs, region, strings.Replace(*characterRealm, " ", "%20", -1), 
+        *characterName, locale, apiToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return nil, errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    character, err := getCharacterFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return nil, err
+    }
+    return &character.Professions, nil
 }
 
 func getRealmsFromJSON(body []byte) (*Realms, error) {
@@ -368,7 +494,7 @@ func getGuildMembersFromJSON(body []byte) (*GuildInfo, error) {
     return gi, err
 }
 
-func getCharacterWithItemsFromJSON(body []byte) (*Character, error) {
+func getCharacterFromJSON(body []byte) (*Character, error) {
     var c = new(Character)
     err := json.Unmarshal(body, &c)
     panicOnErr(err)

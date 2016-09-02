@@ -90,10 +90,50 @@ func retryOnBadGateway(f func() error) {
 func sendMessage(session *discordgo.Session, chID string, message string) error {
     logInfo("SENDING MESSAGE:", message)
 	retryOnBadGateway(func() error {
-		_, err := session.ChannelMessageSend(chID, message)
+		err := sendFormattedMessage(session, chID, message)
 		return err
 	})
     return nil
+}
+
+func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage string) error {
+    var err error
+    message := fullMessage
+    i := len(message)
+    if len(message) > 1999 {
+        for i > 1999 {
+            messageSlice := strings.Split(message, "\n")
+            mes := messageSlice[0]
+            l := len(messageSlice)
+            if l == 2 {
+                _, err = session.ChannelMessageSend(chID, mes + "\n")
+                if err != nil {
+                    return err
+                }
+                _, err = session.ChannelMessageSend(chID, messageSlice[1])
+                if err != nil {
+                    return err
+                }
+                return nil
+            }
+            Loop: 
+                for j := 1; j < l - 1; j++ {
+                    mes += "\n" + messageSlice[j]
+                    if len(mes + "\n" + messageSlice[j+1]) > 1999 {
+                        _, err = session.ChannelMessageSend(chID, mes)
+                        if err != nil {
+                            return err
+                        }
+                        message = strings.Replace(message, mes, "", 1)
+                        break Loop
+                    }
+                }
+            i = len(message)
+        }
+    } else {
+        _, err = session.ChannelMessageSend(chID, fullMessage)
+    }
+    return err
 }
 
 func logPinnedMessages(s *discordgo.Session) {
@@ -160,6 +200,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     if strings.HasPrefix(m.Content, "!guildmembers") {
         guildMembersReporter(s, m)
     }
+    if strings.HasPrefix(m.Content, "!guildprofs") {
+        guildProfsReporter(s, m)
+    }
     switch m.Content {
         case "!ping":
             err := sendMessage(s, m.ChannelID, Pong)
@@ -193,6 +236,7 @@ func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     help := "__**Команды бота:**__\n\n"
     help += "__Общая инфа о гильдии и по прокачке:__\n"
     help += "**!guildmembers** - состав гильдии\n"
+    help += "**!guildprofs** - список всех профессий в гильдии\n"
     help += "**!roster** - текущий рейдовый состав\n"
     help += "**!godbook** - мега-гайд по Легиону\n"
     help += "**!relics** - гайдик по реликам на все спеки\n\n"
@@ -256,6 +300,25 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         return
     }
     err = sendMessage(s, m.ChannelID, guildMembersInfo)
+    panicOnErr(err)
+}
+
+
+func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("getting realm and guild name strings...")
+    realmString, guildNameString, err := wow.GetRealmAndGuildNames(m.Content, "!guildprofs")
+    logInfo(realmString, guildNameString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+        return
+    }
+    logInfo("getting guild profs list and sending it...")
+    guildProfsInfo, err := wow.GetGuildProfs(realmString, guildNameString)
+    if err != nil {
+        sendMessage(s, m.ChannelID, err.Error())
+        return
+    }
+    err = sendMessage(s, m.ChannelID, guildProfsInfo)
     panicOnErr(err)
 }
 
