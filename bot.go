@@ -7,21 +7,9 @@ import (
     "time"
     "os"
     "github.com/bwmarrin/discordgo"
-    "github.com/nezorflame/discord-wow-bot/wow"
     "github.com/arteev/fmttab"
-)
-
-const (
-    Pong            = "Pong!"
-    JohnCena        = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
-    Relics          = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
-    RGB             = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
-    RealmOn         = "Сервер онлайн! :smile:"
-    RealmOff        = "Сервер оффлайн :pensive:"
-    RealmHasQueue   = "На сервере очередь, готовься идти делать чай :pensive:"
-    RealmHasNoQueue = "Очередей нет, можно заходить! :smile:"
-
-    GuildRosterMID  = "218849158721830912"
+    "github.com/nezorflame/discord-wow-bot/wow"
+    "github.com/nezorflame/discord-wow-bot/consts"
 )
 
 var (
@@ -179,7 +167,7 @@ func main() {
     panicOnErr(err)
     botID = u.ID
     logInfo("Got BotID =", botID)
-    setupHandlers(session)
+    setup(session)
 	panicOnErr(err)
     logInfo("Opening session...")
 	err = session.Open()
@@ -189,9 +177,14 @@ func main() {
 	return
 }
 
-func setupHandlers(session *discordgo.Session) {
+func setup(session *discordgo.Session) {
 	logInfo("Setting up event handlers...")
 	session.AddHandler(messageCreate)
+    runGuildWatcher(s)
+}
+
+func runGuildWatcher(s *discordgo.Session) {
+    
 }
 
 // This function will be called (due to AddHandler above) every time a new
@@ -201,7 +194,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == botID {
 		return
 	}
-    // Check the command to answer
+    // Check the command to react and answer
     if strings.HasPrefix(m.Content, "!status") {
         statusReporter(s, m)
     }
@@ -219,51 +212,41 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
     }
     switch m.Content {
         case "!ping":
-            err := sendMessage(s, m.ChannelID, Pong)
+            err := sendMessage(s, m.ChannelID, consts.Pong)
             panicOnErr(err)
         case "!johncena":
-            err := sendMessage(s, m.ChannelID, JohnCena)
+            err := sendMessage(s, m.ChannelID, consts.JohnCena)
             panicOnErr(err)
         case "!relics":
-            err := sendMessage(s, m.ChannelID, Relics)
+            err := sendMessage(s, m.ChannelID, consts.Relics)
             panicOnErr(err)
         case "!godbook":
-            err := sendMessage(s, m.ChannelID, RGB)
+            err := sendMessage(s, m.ChannelID, consts.RGB)
             panicOnErr(err)
         case "!roster":
-            printMessageByID(s, m.ChannelID, GuildRosterMID)
+            printMessageByID(s, m.ChannelID, consts.GuildRosterMID)
         case "!help", "!помощь":
             helpReporter(s, m)
+        case "!boobs":
+            boobsReporter(s, m)
         case "!!printpinned":
             logPinnedMessages(s)
         case "!!terminate":
             panic("Terminating bot...")
-        case "!boobs":
-            err := sendMessage(s, m.ChannelID, "Покажи фанатам сиськи! :smile:\nhttps://giphy.com/gifs/gene-wilder-z88aYORoi8fQc ")
-            panicOnErr(err)
     }
 }
 
 func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("Sending help to user...")
-
-    help := "__**Команды бота:**__\n\n"
-    help += "__Общая инфа о гильдии и по прокачке:__\n"
-    help += "**!guildmembers** - состав гильдии\n"
-    help += "**!guildprofs** - список всех профессий в гильдии\n"
-    help += "**!roster** - текущий рейдовый состав\n"
-    help += "**!godbook** - мега-гайд по Легиону\n"
-    help += "**!relics** - гайдик по реликам на все спеки\n\n"
-    help += "__Команды для WoW'a:__\n"
-    help += "**!status** ***имя_сервера*** - текущий статус сервера; если не указывать имя - отобразится для РФа\n"
-    help += "**!queue** ***имя_сервера*** - текущий статус очереди на сервер; если не указывать имя - отобразится для РФа\n"
-    help += "**!realminfo** ***имя_сервера*** - вся инфа по выбранному серверу; если не указывать имя - отобразится для РФа\n\n"    
-    help += "С вопросами и предложениями обращаться к **Аэтерису (Илье)**.\n"
-    help += "Хорошего кача и удачи в борьбе с Легионом! :smile:"
-
-    err := sendMessage(s, m.ChannelID, help)
+    err := sendMessage(s, m.ChannelID, consts.Help)
     panicOnErr(err)
-}    
+}
+
+func boobsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+    logInfo("Sending boobies to user...:)")
+    err := sendMessage(s, m.ChannelID, consts.Boobies)
+    panicOnErr(err)
+}
 
 func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("getting realm name string...")
@@ -274,10 +257,10 @@ func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmStatus {
-        err := sendMessage(s, m.ChannelID, RealmOn)
+        err := sendMessage(s, m.ChannelID, consts.RealmOn)
         panicOnErr(err)
     } else {
-        err := sendMessage(s, m.ChannelID, RealmOff)
+        err := sendMessage(s, m.ChannelID, consts.RealmOff)
         panicOnErr(err)
     }
 }
@@ -291,10 +274,10 @@ func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmQueue {
-        err := sendMessage(s, m.ChannelID, RealmHasQueue)
+        err := sendMessage(s, m.ChannelID, consts.RealmHasQueue)
         panicOnErr(err)
     } else {
-        err := sendMessage(s, m.ChannelID, RealmHasNoQueue)
+        err := sendMessage(s, m.ChannelID, consts.RealmHasNoQueue)
         panicOnErr(err)
     }
 }

@@ -12,6 +12,7 @@ import (
     "io/ioutil"
     "log"
     "os"
+    "github.com/nezorflame/discord-wow-bot/consts"
 )
 
 var (
@@ -20,15 +21,6 @@ var (
     googleAPIToken  string
     locale          string
     region          string
-)
-
-const (
-    apiRealmsLink           = "https://%v.api.battle.net/wow/realm/status?locale=%v&apikey=%v"
-    apiGuildMembersLink     = "https://%v.api.battle.net/wow/guild/%v/%v?fields=members&locale=%v&apikey=%v"
-    apiCharacterItemsLink   = "https://%v.api.battle.net/wow/character/%v/%v?fields=items&locale=%v&apikey=%v"
-    apiCharacterProfsLink   = "https://%v.api.battle.net/wow/character/%v/%v?fields=professions&locale=%v&apikey=%v"
-    armoryProfLink          = "http://%v.battle.net/wow/%v/character/%v/%v/profession/%v"
-    apiGoogleShortenerLink  = "https://www.googleapis.com/urlshortener/v1/url?key=%v"
 )
 
 // Realm - type for WoW server realm info
@@ -61,12 +53,45 @@ type GuildInfo struct {
     AchievementPoints   int             `json:"achievementPoints"`
     LastModified        int             `json:"lastModified"`
     GuildMembersList    []GuildMember   `json:"members"`
+    GuildNewsList       []News          `json:"news"`
 }
 
 // GuildMember - struct for a WoW guild member
 type GuildMember struct {
     Member              Character       `json:"character"`
     Rank                int             `json:"rank"`
+}
+
+// News - struct for any WoW guild news
+type News struct {
+    Type                string          `json:"type"`
+    Character           string          `json:"character"`
+    Timestamp           int             `json:"type"`
+    ItemID              string          `json:"itemId"`
+    Context             string          `json:"context"`
+    BonusLists          []string        `json:"bonusLists"`
+    Achievement         Achievement     `json:"achievement"`
+}
+
+// Achievement - struct for a WoW achievement
+type Achievement struct {
+    ID                  int             `json:"id"`
+    Title               string          `json:"title"`
+    Points              int             `json:"points"`
+    Description         string          `json:"description"`
+    RewardItems         []string        `json:"rewardItems"`
+    Icon                string          `json:"icon"`
+    Criteria            Criteria        `json:"criteria"`
+    AccountWide         bool            `json:"accountWide"`
+    FactionID           int             `json:"factionId"`
+}
+
+// Criteria - struct for a WoW achievement criteria
+type Criteria struct {
+    ID                  int             `json:"id"`
+    Description         string          `json:"description"`
+    OrderIndex          int             `json:"orderIndex"`
+    Max                 int             `json:"max"`
 }
 
 // Character - struct for a WoW character
@@ -164,10 +189,9 @@ func InitializeWoWAPI(wowToken, googleToken *string) {
     logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
     wowAPIToken = *wowToken
     googleAPIToken = *googleToken
-    // TODO: Rework to config
-    locale = "ru_RU"
-    region = "eu"
-    // TODO: Rework to WoW API
+    locale = consts.Locale
+    region = consts.Region
+    // TODO: Rework to WoW API structures from response
     classes = map[int]string{
         1  : "Воин",
         2  : "Паладин",
@@ -278,8 +302,13 @@ func GetRealmInfo(realmName string) (string, error) {
     return realmInfo, nil
 }
 
+// GetGuildNews
+func GetGuildNews(realmName, guildName string) (*[]News, error) {
+    gInfo, err := getGuildNews(*realmName, *guildName)
+}
+
 // GetGuildMembers - function for receiving a list of guild members
-func GetGuildMembers(realmName string, guildName string) ([]map[string]string, error) {
+func GetGuildMembers(realmName, guildName string) ([]map[string]string, error) {
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
         return nil, err
@@ -370,7 +399,7 @@ func GetGuildProfs(realmName string, guildName string) ([]map[string]string, err
 func GetRealmName(message string, command string) string {
     commandString := strings.Replace(message, command, "", 1)
     if commandString == "" {
-        return "Ревущий фьорд"
+        return consts.GuildRealm
     }
     return strings.TrimLeft(commandString, " ")
 }
@@ -379,7 +408,7 @@ func GetRealmName(message string, command string) string {
 func GetRealmAndGuildNames(message string, command string) (string, string, error) {
     commandString := strings.Replace(message, command, "", 1)
     if commandString == "" {
-        return "Ревущий фьорд", "Аэтернум", nil
+        return consts.GuildRealm, consts.GuildName, nil
     }
     s := strings.Split(commandString, ", ")
     if (len(s) < 2) {
@@ -389,7 +418,7 @@ func GetRealmAndGuildNames(message string, command string) (string, string, erro
 }
 
 func getRealms() (*[]Realm, error) {
-    apiLink := fmt.Sprintf(apiRealmsLink, region, locale, wowAPIToken)
+    apiLink := fmt.Sprintf(consts.WoWAPIRealmsLink, region, locale, wowAPIToken)
     r, err := http.Get(apiLink)
     panicOnErr(err)
     defer r.Body.Close()
@@ -402,9 +431,9 @@ func getRealms() (*[]Realm, error) {
     return &realms.RealmList, nil
 }
 
-func getGuildMembers(guildRealm *string, guildName *string) (*[]GuildMember, error) {
+func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
     logInfo("getting main guild members...")
-    apiLink := fmt.Sprintf(apiGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
+    apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
         strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
     r, err := http.Get(apiLink)
     panicOnErr(err)
@@ -421,6 +450,10 @@ func getGuildMembers(guildRealm *string, guildName *string) (*[]GuildMember, err
     return &members, nil
 }
 
+func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
+    
+}
+
 func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
     logInfo("getting additional guild members...")
     var addGMembers []GuildMember
@@ -429,7 +462,7 @@ func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) 
     }
     for realm, m := range addMembers {
         for guild, character := range m {
-            apiLink := fmt.Sprintf(apiGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1), 
+            apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1), 
                 strings.Replace(guild, " ", "%20", -1), locale, wowAPIToken)
             r, err := http.Get(apiLink)
             panicOnErr(err)
@@ -502,7 +535,7 @@ func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
 }
 
 func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {
-    apiLink := fmt.Sprintf(apiCharacterItemsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
+    apiLink := fmt.Sprintf(consts.WoWAPICharacterItemsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
         *characterName, locale, wowAPIToken)
     r, err := http.Get(apiLink)
     panicOnErr(err)
@@ -524,7 +557,7 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
 }
 
 func getCharacterProfessions(characterRealm *string, characterName *string) (*Professions, error) {
-    apiLink := fmt.Sprintf(apiCharacterProfsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
+    apiLink := fmt.Sprintf(consts.WoWAPICharacterProfsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
         *characterName, locale, wowAPIToken)
     r, err := http.Get(apiLink)
     panicOnErr(err)
@@ -566,8 +599,8 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
 }
 
 func getProfShortLink(rSlug, cName, pName *string) (string, error) {
-    link := fmt.Sprintf(armoryProfLink, region, locale[:2], *rSlug, *cName, *pName)
-    apiLink := fmt.Sprintf(apiGoogleShortenerLink, googleAPIToken)
+    link := fmt.Sprintf(consts.WoWArmoryProfLink, region, locale[:2], *rSlug, *cName, *pName)
+    apiLink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
     link = `{"longUrl": "` + link + `"}`
     var jsonStr = []byte(link)
     req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
