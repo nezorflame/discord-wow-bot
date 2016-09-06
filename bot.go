@@ -186,7 +186,7 @@ func main() {
 func setup(session *discordgo.Session) {
 	logInfo("Setting up event handlers...")
 	session.AddHandler(messageCreate)
-    runGuildWatcher(s)
+    runGuildWatcher(session)
 }
 
 func runGuildWatcher(s *discordgo.Session) {
