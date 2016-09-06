@@ -2,9 +2,6 @@
 	"ImportPath": "github.com/nezorflame/discord-wow-bot",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/arteev/fmttab",
