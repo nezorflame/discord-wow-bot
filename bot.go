@@ -26,15 +26,21 @@ func init() {
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
 
     // Parse command line arguments.
-    flag.StringVar(&discordToken, "dt", "", "Account Token")
-    flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
-    flag.StringVar(&googleToken, "gt", "", "Google URL Shortener Token")
-    flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
-    flag.Parse()
+    discordToken = os.Getenv("dt")
+    wowToken = os.Getenv("wt")
+    googleToken = os.Getenv("gt")
+    mainChannelID = os.Getenv("mc")
     if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
+        flag.StringVar(&discordToken, "dt", "", "Account Token")
+        flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
+        flag.StringVar(&googleToken, "gt", "", "Google URL Shortener Token")
+        flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
+        flag.Parse()
+        if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
+            flag.PrintDefaults()
+            os.Exit(1)
+        }
+    }
 
     wow.InitializeWoWAPI(&wowToken, &googleToken)
 }

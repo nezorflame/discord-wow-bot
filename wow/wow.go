@@ -302,9 +302,10 @@ func GetRealmInfo(realmName string) (string, error) {
     return realmInfo, nil
 }
 
-// GetGuildNews
+// GetGuildNews - function for getting the latest guild news
 func GetGuildNews(realmName, guildName string) (*[]News, error) {
-    gInfo, err := getGuildNews(*realmName, *guildName)
+    gInfo, err := getGuildNews(&realmName, &guildName)
+    return gInfo, err
 }
 
 // GetGuildMembers - function for receiving a list of guild members
@@ -451,7 +452,7 @@ func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
 }
 
 func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
-    
+    return new([]News), nil
 }
 
 func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
