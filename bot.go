@@ -190,7 +190,7 @@ func setup(session *discordgo.Session) {
 }
 
 func runGuildWatcher(s *discordgo.Session) {
-    
+    wow.GetGuildNews(consts.GuildRealm, consts.GuildName)
 }
 
 // This function will be called (due to AddHandler above) every time a new

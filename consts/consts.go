@@ -36,6 +36,7 @@ __Команды для WoW'a:__
 
     WoWAPIRealmsLink            = "https://%v.api.battle.net/wow/realm/status?locale=%v&apikey=%v"
     WoWAPIGuildMembersLink      = "https://%v.api.battle.net/wow/guild/%v/%v?fields=members&locale=%v&apikey=%v"
+    WoWAPIGuildNewsLink         = "https://%v.api.battle.net/wow/guild/%v/%v?fields=news&locale=%v&apikey=%v"
     WoWAPICharacterItemsLink    = "https://%v.api.battle.net/wow/character/%v/%v?fields=items&locale=%v&apikey=%v"
     WoWAPICharacterProfsLink    = "https://%v.api.battle.net/wow/character/%v/%v?fields=professions&locale=%v&apikey=%v"
 

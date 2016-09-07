@@ -12,6 +12,7 @@ import (
     "io/ioutil"
     "log"
     "os"
+    "time"
     "github.com/nezorflame/discord-wow-bot/consts"
 )
 
@@ -66,10 +67,10 @@ type GuildMember struct {
 type News struct {
     Type                string          `json:"type"`
     Character           string          `json:"character"`
-    Timestamp           int             `json:"type"`
-    ItemID              string          `json:"itemId"`
+    Timestamp           int64           `json:"type"`
+    ItemID              int             `json:"itemId"`
     Context             string          `json:"context"`
-    BonusLists          []string        `json:"bonusLists"`
+    BonusLists          []int           `json:"bonusLists"`
     Achievement         Achievement     `json:"achievement"`
 }
 
@@ -81,7 +82,7 @@ type Achievement struct {
     Description         string          `json:"description"`
     RewardItems         []string        `json:"rewardItems"`
     Icon                string          `json:"icon"`
-    Criteria            Criteria        `json:"criteria"`
+    Criteria            []Criteria      `json:"criteria"`
     AccountWide         bool            `json:"accountWide"`
     FactionID           int             `json:"factionId"`
 }
@@ -303,9 +304,32 @@ func GetRealmInfo(realmName string) (string, error) {
 }
 
 // GetGuildNews - function for getting the latest guild news
-func GetGuildNews(realmName, guildName string) (*[]News, error) {
-    gInfo, err := getGuildNews(&realmName, &guildName)
-    return gInfo, err
+func GetGuildNews(realmName, guildName string) (*[]string, error) {
+    gNews, err := getGuildNews(&realmName, &guildName)
+    if err != nil {
+        return nil, err
+    }
+    var legendaries []string
+    for _, n := range *gNews {
+        logInfo(n.Character, n.Type)
+        if n.Type != "itemLoot" { continue }
+        itemTime := time.Unix(n.Timestamp, 0)
+        now := time.Now()
+        before := now.Add(-5 * time.Second)
+        if inTimeSpan(before, now, itemTime) {
+            isLegendary, err := isItemLegendary(n.ItemID)
+            if err != nil {
+                logInfo(err)
+                continue
+            }
+            if isLegendary {
+                message := itemTime.String() + ": " + n.Character + "got legendary item with id=" + strconv.Itoa(n.ItemID)
+                logInfo(message)
+                legendaries = append(legendaries, message)
+            }
+        }
+    }
+    return &legendaries, nil
 }
 
 // GetGuildMembers - function for receiving a list of guild members
@@ -432,6 +456,25 @@ func getRealms() (*[]Realm, error) {
     return &realms.RealmList, nil
 }
 
+func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
+    logInfo("getting guild news...")
+    apiLink := fmt.Sprintf(consts.WoWAPIGuildNewsLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
+        strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    gInfo, err := getGuildInfoFromJSON([]byte(body))
+    if err != nil {
+        return nil, err
+    }
+    news := gInfo.GuildNewsList
+    // Fill string valuables
+    gInfo.Side = factions[gInfo.SideInt]
+    return &news, nil
+}
+
 func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
     logInfo("getting main guild members...")
     apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
@@ -441,7 +484,7 @@ func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
     defer r.Body.Close()
     body, err := ioutil.ReadAll(r.Body)
     panicOnErr(err)
-    gInfo, err := getGuildMembersFromJSON([]byte(body))
+    gInfo, err := getGuildInfoFromJSON([]byte(body))
     if err != nil {
         return nil, err
     }
@@ -449,10 +492,6 @@ func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
     return &members, nil
-}
-
-func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
-    return new([]News), nil
 }
 
 func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
@@ -470,7 +509,7 @@ func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) 
             defer r.Body.Close()
             body, err := ioutil.ReadAll(r.Body)
             panicOnErr(err)
-            addGInfo, err := getGuildMembersFromJSON([]byte(body))
+            addGInfo, err := getGuildInfoFromJSON([]byte(body))
             if err != nil {
                 return nil, err
             }
@@ -629,7 +668,7 @@ func getRealmsFromJSON(body []byte) (*Realms, error) {
     return r, err
 }
 
-func getGuildMembersFromJSON(body []byte) (*GuildInfo, error) {
+func getGuildInfoFromJSON(body []byte) (*GuildInfo, error) {
     var gi = new(GuildInfo)
     err := json.Unmarshal(body, &gi)
     panicOnErr(err)
@@ -676,4 +715,14 @@ func getRealmSlugByName(realmName *string) (string, error) {
         }
     }
     return "", errors.New("No such realm is present!")
+}
+
+func isItemLegendary(itemID int) (bool, error) {
+    var legendary bool
+    legendary = true
+    return legendary, nil
+}
+
+func inTimeSpan(start, end, check time.Time) bool {
+    return check.After(start) && check.Before(end)
 }
