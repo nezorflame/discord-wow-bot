@@ -1,1 +1,1 @@
-bot: ./discord-wow-bot -dt MjE5ODA4OTYxNzk1MTk0ODkw.CqegZw.kZzyLBPMCnpLnhgvt5xZ_tGdITk -wt fdvxqkq6qkq364brvgkwuur73u5dncw8 -gt AIzaSyB_UU_CtKH8BsaJ1lkbKqxnI3KS_cpM4uk -mc 217673545742811136
+bot: discord-wow-bot -dt MjE5ODA4OTYxNzk1MTk0ODkw.CqegZw.kZzyLBPMCnpLnhgvt5xZ_tGdITk -wt fdvxqkq6qkq364brvgkwuur73u5dncw8 -gt AIzaSyB_UU_CtKH8BsaJ1lkbKqxnI3KS_cpM4uk -mc 217673545742811136
