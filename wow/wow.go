@@ -95,6 +95,15 @@ type Criteria struct {
     Max                 int             `json:"max"`
 }
 
+// Item - partly filled struct for obtaining WoW item info
+// TODO: Fill it with all the fields from the server response
+type Item struct {
+    ID                  int             `json:"id"`
+    Name                string          `json:"name"`
+    Quality             int             `json:"quality"`
+    ItemLevel           int             `json:"itemLevel"`
+}
+
 // Character - struct for a WoW character
 type Character struct {
     Name                string          `json:"name"` 
@@ -310,14 +319,16 @@ func GetGuildNews(realmName, guildName string) (*[]string, error) {
         return nil, err
     }
     var legendaries []string
+    now := time.Now()
+    before := now.Add(-7 * 24 * time.Hour)
+    logInfo(now, before)
     for _, n := range *gNews {
-        logInfo(n.Character, n.Type)
-        if n.Type != "itemLoot" { continue }
         itemTime := time.Unix(n.Timestamp, 0)
-        now := time.Now()
-        before := now.Add(-5 * time.Second)
+        logInfo(n.Type, n.Character, n.Timestamp)
+        if n.Type != "itemLoot" { continue }
         if inTimeSpan(before, now, itemTime) {
-            isLegendary, err := isItemLegendary(n.ItemID)
+            logInfo(n.Character, n.Type)
+            isLegendary, err := isItemLegendary(&n.ItemID)
             if err != nil {
                 logInfo(err)
                 continue
@@ -469,10 +480,9 @@ func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
     if err != nil {
         return nil, err
     }
-    news := gInfo.GuildNewsList
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
-    return &news, nil
+    return &gInfo.GuildNewsList, nil
 }
 
 func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
@@ -488,10 +498,9 @@ func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
     if err != nil {
         return nil, err
     }
-    members := gInfo.GuildMembersList
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
-    return &members, nil
+    return &gInfo.GuildMembersList, nil
 }
 
 func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
@@ -661,6 +670,24 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
     return *shortLink, nil
 }
 
+func getItemQuality(itemID *int) (int, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, *itemID, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return -1, errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    item, err := getItemFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return -1, err
+    }
+    return item.Quality, nil
+}
+
 func getRealmsFromJSON(body []byte) (*Realms, error) {
     var r = new(Realms)
     err := json.Unmarshal(body, &r)
@@ -680,6 +707,13 @@ func getCharacterFromJSON(body []byte) (*Character, error) {
     err := json.Unmarshal(body, &c)
     panicOnErr(err)
     return c, err
+}
+
+func getItemFromJSON(body []byte) (*Item, error) {
+    var i = new(Item)
+    err := json.Unmarshal(body, &i)
+    panicOnErr(err)
+    return i, err
 }
 
 func getURLFromJSON(body []byte) (*string, error) {
@@ -717,10 +751,15 @@ func getRealmSlugByName(realmName *string) (string, error) {
     return "", errors.New("No such realm is present!")
 }
 
-func isItemLegendary(itemID int) (bool, error) {
-    var legendary bool
-    legendary = true
-    return legendary, nil
+func isItemLegendary(itemID *int) (bool, error) {
+    itemQuality, err := getItemQuality(itemID)
+    if err != nil {
+        return false, err
+    }
+    if itemQuality == 5 {
+        return true, nil
+    }
+    return false, nil
 }
 
 func inTimeSpan(start, end, check time.Time) bool {

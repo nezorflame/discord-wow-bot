@@ -39,6 +39,7 @@ __Команды для WoW'a:__
     WoWAPIGuildNewsLink         = "https://%v.api.battle.net/wow/guild/%v/%v?fields=news&locale=%v&apikey=%v"
     WoWAPICharacterItemsLink    = "https://%v.api.battle.net/wow/character/%v/%v?fields=items&locale=%v&apikey=%v"
     WoWAPICharacterProfsLink    = "https://%v.api.battle.net/wow/character/%v/%v?fields=professions&locale=%v&apikey=%v"
+    WoWAPIItemLink              = "https://%v.api.battle.net/wow/item/%d?locale=%v&apikey=%v"
 
     WoWArmoryProfLink           = "http://%v.battle.net/wow/%v/character/%v/%v/profession/%v"
 
