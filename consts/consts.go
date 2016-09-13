@@ -43,5 +43,7 @@ __Команды для WoW'a:__
 
     WoWArmoryProfLink           = "http://%v.battle.net/wow/%v/character/%v/%v/profession/%v"
 
+    WowheadItemLink             = "http://ru.wowhead.com/item=%d"
+
     GoogleAPIShortenerLink      = "https://www.googleapis.com/urlshortener/v1/url?key=%v"
 )

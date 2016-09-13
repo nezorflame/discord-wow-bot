@@ -26,22 +26,20 @@ func init() {
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
 
     // Parse command line arguments.
-    discordToken = os.Getenv("dt")
-    wowToken = os.Getenv("wt")
-    googleToken = os.Getenv("gt")
-    mainChannelID = os.Getenv("mc")
+    // discordToken = os.Getenv("dt")
+    // wowToken = os.Getenv("wt")
+    // googleToken = os.Getenv("gt")
+    // mainChannelID = os.Getenv("mc")
+    flag.StringVar(&discordToken, "dt", "", "Account Token")
+    flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
+    flag.StringVar(&googleToken, "gt", "", "Google URL Shortener Token")
+    flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
+    flag.Parse()
     if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
-        flag.StringVar(&discordToken, "dt", "", "Account Token")
-        flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
-        flag.StringVar(&googleToken, "gt", "", "Google URL Shortener Token")
-        flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
-        flag.Parse()
-        if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
-            flag.PrintDefaults()
-            os.Exit(1)
-        }
+        flag.PrintDefaults()
+        os.Exit(1)
     }
-
+    discordToken = "Bot " + discordToken
     wow.InitializeWoWAPI(&wowToken, &googleToken)
 }
 
@@ -173,11 +171,13 @@ func main() {
     panicOnErr(err)
     botID = u.ID
     logInfo("Got BotID =", botID)
+    logInfo("Adding handlers...")
     setup(session)
-	panicOnErr(err)
     logInfo("Opening session...")
 	err = session.Open()
 	panicOnErr(err)
+    logInfo("Starting guild watcher...")
+    runGuildWatcher(session)
 	logInfo("Bot is now running.\nPress CTRL-C to exit...")
 	<-make(chan struct{})
 	return
@@ -186,11 +186,22 @@ func main() {
 func setup(session *discordgo.Session) {
 	logInfo("Setting up event handlers...")
 	session.AddHandler(messageCreate)
-    runGuildWatcher(session)
 }
 
 func runGuildWatcher(s *discordgo.Session) {
-    wow.GetGuildNews(consts.GuildRealm, consts.GuildName)
+    // lChannel := make(chan string)
+    // legendaries := new([]string) 
+    // for {
+    //     getGuildLegendaries(legendaries, lChannel)
+    //     *legendaries = append(*legendaries, <-lChannel)
+    //     time.Sleep(60 * time.Second)
+    // }
+    wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
+}
+
+func getGuildLegendaries(leg *[]string, c chan string) {
+    // legendaries, err := wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
+    
 }
 
 // This function will be called (due to AddHandler above) every time a new

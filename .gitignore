@@ -25,3 +25,6 @@ _testmain.go
 
 # vscode Folders
 .vscode/
+
+# ignore binary
+discord-wow-bot*

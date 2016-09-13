@@ -1,0 +1,336 @@
+package wow
+
+import (
+    "fmt"
+    "bytes"
+    "io/ioutil"
+    "net/http"
+    "errors"
+    "strings"
+    "time"
+    "github.com/nezorflame/discord-wow-bot/consts"
+)
+
+func getRealms() (*[]Realm, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPIRealmsLink, region, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    realms, err := getRealmsFromJSON([]byte(body))
+    if err != nil {
+        return nil, err
+    }
+    return &realms.RealmList, nil
+}
+
+func getGuildNews(guildRealm, guildName *string) (*[]News, error) {
+    logInfo("getting guild news...")
+    apiLink := fmt.Sprintf(consts.WoWAPIGuildNewsLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
+        strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    gInfo, err := getGuildInfoFromJSON([]byte(body))
+    if err != nil {
+        return nil, err
+    }
+    // Fill string valuables
+    gInfo.Side = factions[gInfo.SideInt]
+    return &gInfo.GuildNewsList, nil
+}
+
+func getUpdatedGuildNews(realmName, guildName string) (*[]News, error) {
+    gNews, err := getGuildNews(&realmName, &guildName)
+    if err != nil {
+        return nil, err
+    }
+    done := make(chan bool, 1)
+    go refillNews(gNews, done)
+    <-done
+    gNews = sortGuildNewsByTimestamp(gNews)
+    logInfo("Got updated guild news")
+    return gNews, nil
+}
+
+func getGuildMembers(guildRealm, guildName *string) (*[]GuildMember, error) {
+    logInfo("getting main guild members...")
+    apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
+        strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    gInfo, err := getGuildInfoFromJSON([]byte(body))
+    if err != nil {
+        return nil, err
+    }
+    // Fill string valuables
+    gInfo.Side = factions[gInfo.SideInt]
+    return &gInfo.GuildMembersList, nil
+}
+
+func getAdditionalMembers(guildMembers *[]GuildMember)  (*[]GuildMember, error) {
+    logInfo("getting additional guild members...")
+    var addGMembers []GuildMember
+    for _, m := range *guildMembers {
+        addGMembers = append(addGMembers, m)
+    }
+    for realm, m := range addMembers {
+        for guild, character := range m {
+            apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1), 
+                strings.Replace(guild, " ", "%20", -1), locale, wowAPIToken)
+            r, err := http.Get(apiLink)
+            panicOnErr(err)
+            defer r.Body.Close()
+            body, err := ioutil.ReadAll(r.Body)
+            panicOnErr(err)
+            addGInfo, err := getGuildInfoFromJSON([]byte(body))
+            if err != nil {
+                return nil, err
+            }
+            for _, member := range addGInfo.GuildMembersList {
+                if member.Member.Name == character {
+                    addGMembers = append(addGMembers, member)
+                }
+            }
+        }
+    }
+    // Fill string valuables
+    return &addGMembers, nil
+}
+
+func refillMembers(members *[]GuildMember, t string, done chan bool) {
+    var guildMembers []GuildMember
+    c := make(chan GuildMember, len(*members))
+    m := *members
+    for i := range m {
+        go updateCharacter(&m[i], t, c)
+    }
+    for i := 0; i < len(*members); i++ {
+        guildMembers = append(guildMembers, <-c)
+    }
+    members = &guildMembers
+    logInfo("Members refilled with", t)
+    done <- true
+}
+
+func refillNews(news *[]News, done chan bool){
+    var guildNews []News
+    c := make(chan News, len(*news))
+    n := *news
+    for i := range n {
+        go updateNews(&n[i], c)
+    }
+    for i := 0; i < len(*news); i++ {
+        guildNews = append(guildNews, <-c)
+    }
+    news = &guildNews
+    logInfo("News refilled")
+    done <- true
+}
+
+func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
+    var newMember = new(GuildMember)
+    var items *Items
+    var profs *Professions
+    var err error
+    m := *member
+    m.Member.Class  = classes[m.Member.ClassInt]
+    m.Member.Gender = genders[m.Member.GenderInt]
+    m.Member.Race   = races[m.Member.RaceInt]
+    switch t {
+        case "Items":
+            items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
+        case "Profs":
+            profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
+    }
+    if (err != nil) {
+        c <- m
+        logInfo(err)
+        return
+    }
+    if (err != nil) {
+        c <- m
+        logInfo(err)
+        return
+    }
+    newMember.Member = m.Member
+    switch t {
+        case "Items":
+            newMember.Member.Items = *items
+        case "Profs":
+            newMember.Member.Professions = *profs
+    }
+    newMember.Rank = m.Rank
+    c <- *newMember
+}
+
+func updateNews(newsrecord *News, c chan News) {
+    if newsrecord.Type == "itemLoot" {
+        item, err := getItemByID(&newsrecord.ItemID)
+        if (err != nil) {
+            c <- *newsrecord
+            logInfo(err)
+            return
+        }
+        newsrecord.ItemInfo = *item
+    }
+    newsrecord.EventTime = time.Unix(newsrecord.Timestamp / 1000, 0)
+    c <- *newsrecord
+}
+
+func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPICharacterItemsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
+        *characterName, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return nil, errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    character, err := getCharacterFromJSON([]byte(body))
+    if err != nil {
+        return nil, err
+    }
+    character.RealmSlug, err = getRealmSlugByName(characterRealm)
+    if err != nil {
+        return nil, err
+    }
+    return &character.Items, nil
+}
+
+func getCharacterProfessions(characterRealm *string, characterName *string) (*Professions, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPICharacterProfsLink, region, strings.Replace(*characterRealm, " ", "%20", -1), 
+        *characterName, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return nil, errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    character, err := getCharacterFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return nil, err
+    }
+    character.RealmSlug, err = getRealmSlugByName(characterRealm)
+    if err != nil {
+        return nil, err
+    }
+    var profs = new(Professions)
+    for _, p := range character.Professions.PrimaryProfs {
+        var prof = new(Profession)
+        prof = &p
+        prof.EngName = profNames[p.ID]
+        shortLink, err := getProfShortLink(&character.RealmSlug, characterName, &p.EngName)
+        if err != nil {
+            logInfo(err)
+            return &character.Professions, err
+        }
+        prof.Link = shortLink
+        profs.PrimaryProfs = append(profs.PrimaryProfs, *prof)
+    }
+    for _, p := range character.Professions.SecondaryProfs {
+        var prof = new(Profession)
+        prof = &p
+        prof.EngName = profNames[p.ID]
+        profs.SecondaryProfs = append(profs.SecondaryProfs, *prof)
+    }
+    return profs, nil
+}
+
+func getProfShortLink(rSlug, cName, pName *string) (string, error) {
+    link := fmt.Sprintf(consts.WoWArmoryProfLink, region, locale[:2], *rSlug, *cName, *pName)
+    apiLink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
+    link = `{"longUrl": "` + link + `"}`
+    var jsonStr = []byte(link)
+    req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    panicOnErr(err)
+    defer resp.Body.Close()
+    body, err := ioutil.ReadAll(resp.Body)
+    panicOnErr(err)
+    shortLink, err := getURLFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return "", err
+    }
+
+    return *shortLink, nil
+}
+
+func getItemByID(itemID *int) (*Item, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, *itemID, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return new(Item), errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    item, err := getItemFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return new(Item), err
+    }
+    return item, nil
+}
+
+func getItemQualityByID(itemID *int) (int, error) {
+    apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, *itemID, locale, wowAPIToken)
+    r, err := http.Get(apiLink)
+    panicOnErr(err)
+    if strings.Contains(r.Status, "404") {
+        return -1, errors.New(r.Status)
+    }
+    defer r.Body.Close()
+    body, err := ioutil.ReadAll(r.Body)
+    panicOnErr(err)
+    item, err := getItemFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err.Error)
+        return -1, err
+    }
+    return item.Quality, nil
+}
+
+func getRealmByName(realmName string) (Realm, error) {
+    logDebug("getRealmByName: " + realmName)
+    realms, err := getRealms()
+    if err != nil {
+        return *new(Realm), err
+    }
+    for _, r := range *realms {
+        if strings.ToLower(r.Name) == strings.ToLower(realmName) || 
+           strings.ToLower(r.Slug) == strings.ToLower(realmName) {
+            return r, nil
+        }
+    }
+    return *new(Realm), errors.New("No such realm is present!")
+}
+
+func getRealmSlugByName(realmName *string) (string, error) {
+    realms, err := getRealms()
+    if err != nil {
+        return "", err
+    }
+    for _, r := range *realms {
+        if strings.ToLower(r.Name) == strings.ToLower(*realmName) {
+            return r.Slug, nil
+        }
+    }
+    return "", errors.New("No such realm is present!")
+}
