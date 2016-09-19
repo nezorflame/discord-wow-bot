@@ -193,19 +193,19 @@ func GetGuildMembers(realmName, guildName string) ([]map[string]string, error) {
     if err != nil {
         return nil, err
     }
-    gMembers, err = getAdditionalMembers(gMembers)
+    err = gMembers.getAdditionalMembers()
     if err != nil {
         return nil, err
     }
+    
+    done := make(chan MembersList, 1)
+    go gMembers.refillMembers("Items", done)
+    gMembers = <-done
 
-    done := make(chan bool, 1)
-    go refillMembers(gMembers, "Items", done)
-    <-done
-
-    gMembers = sortGuildMembersByName(gMembers)
+    gMembers = gMembers.sortGuildMembersByName()
 
     var guildMembersList []map[string]string
-    for _, m := range *gMembers {
+    for _, m := range gMembers {
         gMember := make(map[string]string)
         gMember["Name"] = m.Member.Name
         gMember["Level"] = strconv.Itoa(m.Member.Level)
@@ -227,20 +227,19 @@ func GetGuildProfs(realmName string, guildName string) ([]map[string]string, err
     if err != nil {
         return nil, err
     }
-    gMembers, err = getAdditionalMembers(gMembers)
+    err = gMembers.getAdditionalMembers()
     if err != nil {
         return nil, err
     }
 
-    done := make(chan bool, 1)
-    go refillMembers(gMembers, "Profs", done)
-    <-done
+    done := make(chan MembersList, 1)
+    go gMembers.refillMembers("Profs", done)
+    gMembers = <-done
 
-    gMembers = sortGuildMembersByName(gMembers)
+    gMembers = gMembers.sortGuildMembersByName()
 
     var guildProfsList []map[string]string
-
-    for _, m := range *gMembers {
+    for _, m := range gMembers {
         gMember := make(map[string]string)
         gMember["Name"] = m.Member.Name
         switch len(m.Member.Professions.PrimaryProfs) {

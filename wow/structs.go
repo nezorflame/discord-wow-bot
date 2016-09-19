@@ -23,17 +23,23 @@ type Realms struct {
 
 // GuildInfo - struct for WoW guild information
 type GuildInfo struct {
-    Name                string          `json:"name"`
-    Realm               string          `json:"realm"`
-    BattleGroup         string          `json:"battlegroup"`
-    Level               int             `json:"level"`
-    SideInt             int             `json:"side"`
+    Name                string        `json:"name"`
+    Realm               string        `json:"realm"`
+    BattleGroup         string        `json:"battlegroup"`
+    Level               int           `json:"level"`
+    SideInt             int           `json:"side"`
     Side                string
-    AchievementPoints   int             `json:"achievementPoints"`
-    LastModified        int             `json:"lastModified"`
-    GuildMembersList    []GuildMember   `json:"members"`
-    GuildNewsList       []News          `json:"news"`
+    AchievementPoints   int           `json:"achievementPoints"`
+    LastModified        int           `json:"lastModified"`
+    GuildMembersList    MembersList   `json:"members"`
+    GuildNewsList       NewsList      `json:"news"`
 }
+
+// MembersList - type for a slice of GuildMember
+type MembersList []GuildMember
+
+// NewsList - type for a slice of News
+type NewsList    []News
 
 // GuildMember - struct for a WoW guild member
 type GuildMember struct {
