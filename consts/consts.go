@@ -6,14 +6,18 @@ const (
     GuildName                   = "Аэтернум"
     GuildRealm                  = "Ревущий фьорд"
     Pong                        = "Pong!"
-    JohnCena                    = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
     Relics                      = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
     RGB                         = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
     RealmOn                     = "Сервер онлайн! :smile:"
     RealmOff                    = "Сервер оффлайн :pensive:"
     RealmHasQueue               = "На сервере очередь, готовься идти делать чай :pensive:"
     RealmHasNoQueue             = "Очередей нет, можно заходить! :smile:"
+
+    GMCAcquired                 = "Получаю список согильдейцев из Армори...подожди секунд 10-15 :smile:"
+    GPCAcquired                 = "Получаю список профессий в гильдии из Армори...подожди секунд 10-15 :smile:"
+
     Boobies                     = "Покажи фанатам сиськи! :smile:\nhttps://giphy.com/gifs/gene-wilder-z88aYORoi8fQc"
+    JohnCena                    = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
 
     Help                        = `__**Команды бота:**__
 

@@ -59,6 +59,12 @@ func panicOnErr(err error) {
 	}
 }
 
+func logOnErr(err error) {
+	if err != nil {
+		logger.Println(err)
+	}
+}
+
 /* Tries to call a method and checking if the method returned an error, if it
 did check to see if it's HTTP 502 from the Discord API and retry for
 `attempts` number of times. */
@@ -73,7 +79,7 @@ func retryOnBadGateway(f func() error) {
 				continue
 			} else {
 				// Otherwise panic !
-				panicOnErr(err)
+				logOnErr(err)
 			}
 		} else {
 			// In case of no error, return.
@@ -145,7 +151,7 @@ func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage s
 func logPinnedMessages(s *discordgo.Session) {
     logInfo("getPinnedMessages called")
     pinned, err := s.ChannelMessagesPinned(mainChannelID)
-    panicOnErr(err)
+    logOnErr(err)
     logInfo(len(pinned), "messages are pinned:")
     for _, message := range pinned {
         logInfo("[" + message.ID + "]", message.Content)
@@ -160,7 +166,7 @@ func printMessageByID(s *discordgo.Session, chID string, mesID string) {
         return
     }
     err = sendMessage(s, chID, message.Content)
-    panicOnErr(err)
+    logOnErr(err)
 }
 
 func main() {
@@ -168,14 +174,14 @@ func main() {
     session, err := discordgo.New(discordToken)
     logInfo("Using bot account token...")
     u, err := session.User("@me")
-    panicOnErr(err)
+    logOnErr(err)
     botID = u.ID
     logInfo("Got BotID =", botID)
     logInfo("Adding handlers...")
     setup(session)
     logInfo("Opening session...")
 	err = session.Open()
-	panicOnErr(err)
+	logOnErr(err)
     logInfo("Starting guild watcher...")
     runGuildWatcher(session)
 	logInfo("Bot is now running.\nPress CTRL-C to exit...")
@@ -222,24 +228,28 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
         realmInfoReporter(s, m)
     }
     if strings.HasPrefix(m.Content, "!guildmembers") {
+        err := sendMessage(s, m.ChannelID, consts.GMCAcquired)
+        logOnErr(err)
         guildMembersReporter(s, m)
     }
     if strings.HasPrefix(m.Content, "!guildprofs") {
+        err := sendMessage(s, m.ChannelID, consts.GPCAcquired)
+        logOnErr(err)
         guildProfsReporter(s, m)
     }
     switch m.Content {
         case "!ping":
             err := sendMessage(s, m.ChannelID, consts.Pong)
-            panicOnErr(err)
+            logOnErr(err)
         case "!johncena":
             err := sendMessage(s, m.ChannelID, consts.JohnCena)
-            panicOnErr(err)
+            logOnErr(err)
         case "!relics":
             err := sendMessage(s, m.ChannelID, consts.Relics)
-            panicOnErr(err)
+            logOnErr(err)
         case "!godbook":
             err := sendMessage(s, m.ChannelID, consts.RGB)
-            panicOnErr(err)
+            logOnErr(err)
         case "!roster":
             printMessageByID(s, m.ChannelID, consts.GuildRosterMID)
         case "!help", "!помощь":
@@ -256,13 +266,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("Sending help to user...")
     err := sendMessage(s, m.ChannelID, consts.Help)
-    panicOnErr(err)
+    logOnErr(err)
 }
 
 func boobsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("Sending boobies to user...:)")
     err := sendMessage(s, m.ChannelID, consts.Boobies)
-    panicOnErr(err)
+    logOnErr(err)
 }
 
 func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -275,10 +285,10 @@ func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmStatus {
         err := sendMessage(s, m.ChannelID, consts.RealmOn)
-        panicOnErr(err)
+        logOnErr(err)
     } else {
         err := sendMessage(s, m.ChannelID, consts.RealmOff)
-        panicOnErr(err)
+        logOnErr(err)
     }
 }
 
@@ -292,23 +302,23 @@ func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         sendMessage(s, m.ChannelID, err.Error())
     } else if realmQueue {
         err := sendMessage(s, m.ChannelID, consts.RealmHasQueue)
-        panicOnErr(err)
+        logOnErr(err)
     } else {
         err := sendMessage(s, m.ChannelID, consts.RealmHasNoQueue)
-        panicOnErr(err)
+        logOnErr(err)
     }
 }
 
 func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-    logInfo("getting realm and guild name strings...")
-    realmString, guildNameString, err := wow.GetRealmAndGuildNames(m.Content, "!guildmembers")
-    logInfo(realmString, guildNameString)
-    if err != nil {
-        sendMessage(s, m.ChannelID, err.Error())
-        return
-    }
+    logInfo("getting parametes string slice...")
+    realmString := consts.GuildName
+    guildNameString := consts.GuildRealm
+    paramString := strings.TrimPrefix(m.Content, "!guildmembers")
+    paramString = strings.TrimPrefix(paramString, " ")
+    parameters := strings.Split(paramString, " ")
+
     logInfo("getting guild members list and sending it...")
-    guildMembersInfo, err := wow.GetGuildMembers(realmString, guildNameString)
+    guildMembersInfo, err := wow.GetGuildMembers(realmString, guildNameString, parameters)
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
         return
@@ -330,7 +340,7 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     }
     err = sendMessage(s, m.ChannelID, "```" + tab.String() + "```")
     logInfo(len(tab.String()))
-    panicOnErr(err)
+    logOnErr(err)
 }
 
 
@@ -364,7 +374,7 @@ func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         })
     }
     err = sendMessage(s, m.ChannelID, "```" + tab.String() + "```")
-    panicOnErr(err)
+    logOnErr(err)
 }
 
 func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -377,7 +387,7 @@ func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         sendMessage(s, m.ChannelID, err.Error())
     } else {
         err := sendMessage(s, m.ChannelID, realmInfo)
-        panicOnErr(err)
+        logOnErr(err)
     }
 }
 

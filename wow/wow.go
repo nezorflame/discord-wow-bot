@@ -188,7 +188,7 @@ func GetGuildLegendariesList(realmName, guildName string) ([]string, error) {
 }
 
 // GetGuildMembers - function for receiving a list of guild members
-func GetGuildMembers(realmName, guildName string) ([]map[string]string, error) {
+func GetGuildMembers(realmName, guildName string, params []string) ([]map[string]string, error) {
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
         return nil, err
@@ -202,7 +202,7 @@ func GetGuildMembers(realmName, guildName string) ([]map[string]string, error) {
     go gMembers.refillMembers("Items", done)
     gMembers = <-done
 
-    gMembers = gMembers.sortGuildMembersByName()
+    gMembers = gMembers.sortGuildMembers(params)
 
     var guildMembersList []map[string]string
     for _, m := range gMembers {
@@ -287,4 +287,9 @@ func GetRealmAndGuildNames(message string, command string) (string, string, erro
         return "", "", errors.New("Команда введена неверно! Пожалуйста, попробуйте еще раз.")
     }
     return s[0], s[1], nil
+}
+
+// GetDefaultRealmAndGuildNames returns default realm and guild name strings
+func GetDefaultRealmAndGuildNames() (string, string) {
+    return consts.GuildRealm, consts.GuildName
 }
