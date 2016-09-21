@@ -12,7 +12,8 @@ import (
 )
 
 var (
-    logger          *log.Logger
+    // Logger is public for tests
+    Logger          *log.Logger
     wowAPIToken     string
     googleAPIToken  string
     locale          string
@@ -29,13 +30,13 @@ var (
 )
 
 func logDebug(v ...interface{}) {
-	logger.SetPrefix("DEBUG ")
-	logger.Println(v...)
+	Logger.SetPrefix("DEBUG ")
+	Logger.Println(v...)
 }
 
 func logInfo(v ...interface{}) {
-	logger.SetPrefix("INFO  ")
-	logger.Println(v...)
+	Logger.SetPrefix("INFO  ")
+	Logger.Println(v...)
 }
 
 func panicOnErr(err error) {
@@ -50,7 +51,7 @@ func inTimeSpan(start, end, check time.Time) bool {
 
 // InitializeWoWAPI - function for initializing WoW API
 func InitializeWoWAPI(wowToken, googleToken *string) {
-    logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
+    Logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
     wowAPIToken = *wowToken
     googleAPIToken = *googleToken
     locale = consts.Locale
@@ -197,13 +198,10 @@ func GetGuildMembers(realmName, guildName string, params []string) ([]map[string
     if err != nil {
         return nil, err
     }
-    
     done := make(chan MembersList, 1)
     go gMembers.refillMembers("Items", done)
     gMembers = <-done
-
-    gMembers = gMembers.sortGuildMembers(params)
-
+    gMembers = gMembers.SortGuildMembers(params)
     var guildMembersList []map[string]string
     for _, m := range gMembers {
         gMember := make(map[string]string)
@@ -222,7 +220,7 @@ func GetGuildMembers(realmName, guildName string, params []string) ([]map[string
 }
 
 // GetGuildProfs - function for receiving a list of guild professions
-func GetGuildProfs(realmName string, guildName string) ([]map[string]string, error) {
+func GetGuildProfs(realmName, guildName string, param string) ([]map[string]string, error) {
     gMembers, err := getGuildMembers(&realmName, &guildName)
     if err != nil {
         return nil, err
@@ -231,13 +229,19 @@ func GetGuildProfs(realmName string, guildName string) ([]map[string]string, err
     if err != nil {
         return nil, err
     }
-
     done := make(chan MembersList, 1)
     go gMembers.refillMembers("Profs", done)
     gMembers = <-done
-
-    gMembers = gMembers.sortGuildMembersByName()
-
+    params := []string{"name=asc"}
+    gMembers = gMembers.SortGuildMembers(params)
+    var profName string
+    if param != "" {
+        s := strings.Split(param, "=")
+        if len(s) < 2 {
+            return nil, errors.New("Не указана желаемая профессия! Повтори ввод.")
+        }
+        profName = s[1]
+    }
     var guildProfsList []map[string]string
     for _, m := range gMembers {
         gMember := make(map[string]string)
@@ -262,7 +266,12 @@ func GetGuildProfs(realmName string, guildName string) ([]map[string]string, err
                 gMember["SecondProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[1].Rank) + 
                                             " | " + m.Member.Professions.PrimaryProfs[1].Link
         }
-        guildProfsList = append(guildProfsList, gMember)
+        if profName == "" || gMember["FirstProf"] == profName || gMember["SecondProf"] == profName {
+            guildProfsList = append(guildProfsList, gMember)
+        }
+    }
+    if len(guildProfsList) == 0 {
+        return nil, errors.New("Такой профессии ни у кого нет, или она введена неверно!")
     }
     return guildProfsList, nil
 }

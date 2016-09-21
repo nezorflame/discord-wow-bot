@@ -212,7 +212,7 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
     panicOnErr(err)
     character, err := getCharacterFromJSON([]byte(body))
     if err != nil {
-        logInfo(err.Error)
+        logInfo(err)
         return nil, err
     }
     character.RealmSlug, err = getRealmSlugByName(characterRealm)
@@ -257,7 +257,7 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
     panicOnErr(err)
     shortLink, err := getURLFromJSON([]byte(body))
     if err != nil {
-        logInfo(err.Error)
+        logInfo(err)
         return "", err
     }
 
@@ -276,7 +276,7 @@ func getItemByID(itemID *int) (*Item, error) {
     panicOnErr(err)
     item, err := getItemFromJSON([]byte(body))
     if err != nil {
-        logInfo(err.Error)
+        logInfo(err)
         return new(Item), err
     }
     return item, nil
@@ -294,7 +294,7 @@ func getItemQualityByID(itemID *int) (int, error) {
     panicOnErr(err)
     item, err := getItemFromJSON([]byte(body))
     if err != nil {
-        logInfo(err.Error)
+        logInfo(err)
         return -1, err
     }
     return item.Quality, nil

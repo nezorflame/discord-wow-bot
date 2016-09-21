@@ -311,12 +311,15 @@ func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logInfo("getting parametes string slice...")
-    realmString := consts.GuildName
-    guildNameString := consts.GuildRealm
+    var parameters []string
+    realmString := consts.GuildRealm
+    guildNameString := consts.GuildName
     paramString := strings.TrimPrefix(m.Content, "!guildmembers")
     paramString = strings.TrimPrefix(paramString, " ")
-    parameters := strings.Split(paramString, " ")
-
+    if paramString != "" {
+        parameters = strings.Split(paramString, " ")
+        logInfo("paramString:", paramString, "parameters len:", len(parameters))
+    }
     logInfo("getting guild members list and sending it...")
     guildMembersInfo, err := wow.GetGuildMembers(realmString, guildNameString, parameters)
     if err != nil {
@@ -343,17 +346,14 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
     logOnErr(err)
 }
 
-
 func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-    logInfo("getting realm and guild name strings...")
-    realmString, guildNameString, err := wow.GetRealmAndGuildNames(m.Content, "!guildprofs")
-    logInfo(realmString, guildNameString)
-    if err != nil {
-        sendMessage(s, m.ChannelID, err.Error())
-        return
-    }
+    logInfo("getting parametes string slice...")
+    realmString := consts.GuildRealm
+    guildNameString := consts.GuildName
+    paramString := strings.TrimPrefix(m.Content, "!guildprofs")
+    paramString = strings.TrimPrefix(paramString, " ")
     logInfo("getting guild profs list and sending it...")
-    guildProfsInfo, err := wow.GetGuildProfs(realmString, guildNameString)
+    guildProfsInfo, err := wow.GetGuildProfs(realmString, guildNameString, paramString)
     if err != nil {
         sendMessage(s, m.ChannelID, err.Error())
         return
