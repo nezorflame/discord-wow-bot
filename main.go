@@ -44,6 +44,5 @@ func main() {
     bot.Start()
     logInfo("Starting handler...")
 	httpStart()
-	// logInfo("Bot is now running.\nPress CTRL-C to exit...")
-	// <-make(chan struct{})
+	logInfo("Bot is now running.")
 }

@@ -43,7 +43,7 @@ func Start() {
 	err = session.Open()
 	logOnErr(err)
     logInfo("Starting guild watcher...")
-    runGuildWatcher(session)
+    go runGuildWatcher(session)
 }
 
 func logDebug(v ...interface{}) {
