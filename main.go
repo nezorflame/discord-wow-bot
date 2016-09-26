@@ -15,12 +15,18 @@ func logInfo(v ...interface{}) {
 	logger.Println(v...)
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Hi there, I'm alive! :)")
+func watcherHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Starting guild watcher...")
+    go bot.RunGuildWatcher()
+}
+
+func aliveHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Hi there! I'm alive! :D")
 }
 
 func httpStart() {
-    http.HandleFunc("/", handler)
+    http.HandleFunc("/", aliveHandler)
+    http.HandleFunc("/startwatcher", watcherHandler)
     http.ListenAndServe(":8080", nil)
 }
 

@@ -23,6 +23,7 @@ var (
     DiscordMChanID      string
 
     botID               string
+    session             *discordgo.Session
 )
 
 // Start - function to start Discord bot
@@ -43,7 +44,6 @@ func Start() {
 	err = session.Open()
 	logOnErr(err)
     logInfo("Starting guild watcher...")
-    go runGuildWatcher(session)
 }
 
 func logDebug(v ...interface{}) {
@@ -177,7 +177,8 @@ func setup(session *discordgo.Session) {
 	session.AddHandler(messageCreate)
 }
 
-func runGuildWatcher(s *discordgo.Session) {
+// RunGuildWatcher - function for starting the guild news watcher
+func RunGuildWatcher() {
     // lChannel := make(chan string)
     // legendaries := new([]string) 
     for {
