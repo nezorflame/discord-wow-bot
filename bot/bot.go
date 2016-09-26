@@ -1,10 +1,9 @@
-package main
+package bot
 
 import (
-    "strings"
     "log"
+    "strings"
     "time"
-    "os"
     "github.com/bwmarrin/discordgo"
     "github.com/arteev/fmttab"
     "github.com/nezorflame/discord-wow-bot/wow"
@@ -12,39 +11,51 @@ import (
 )
 
 var (
-    logger              *log.Logger
-    discordToken        string
-    wowToken            string
-    googleToken         string
-    mainChannelID       string
+    // Logger for logging
+    Logger              *log.Logger
+    // DiscordToken bot token
+    DiscordToken        string
+    // WoWToken API token
+    WoWToken            string
+    // GoogleToken API token
+    GoogleToken         string
+    // DiscordMChanID main guild channel ID
+    DiscordMChanID      string
+
     botID               string
 )
 
-func init() {
-    // Create initials.
-	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
-
-    // Parse options.
-    discordToken = os.Getenv("dt")
-    wowToken = os.Getenv("wt")
-    googleToken = os.Getenv("gt")
-    mainChannelID = os.Getenv("mc")
-    if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
-        log.Fatalln("Not enough variables to start! Abort mission! ABORT!!!")
-        os.Exit(1)
-    }
-    discordToken = "Bot " + discordToken
-    wow.InitializeWoWAPI(&wowToken, &googleToken)
+// Start - function to start Discord bot
+func Start() {
+    // Fix for a new Discord Bot token auth
+    DiscordToken = "Bot " + DiscordToken
+    wow.InitializeWoWAPI(&WoWToken, &GoogleToken)
+    logInfo("Logging in...")
+    session, err := discordgo.New(DiscordToken)
+    logInfo("Using bot account token...")
+    u, err := session.User("@me")
+    logOnErr(err)
+    botID = u.ID
+    logInfo("Got BotID =", botID)
+    logInfo("Adding handlers...")
+    setup(session)
+    logInfo("Opening session...")
+	err = session.Open()
+	logOnErr(err)
+    logInfo("Starting guild watcher...")
+    runGuildWatcher(session)
+	logInfo("Bot is now running.\nPress CTRL-C to exit...")
+	<-make(chan struct{})
 }
 
 func logDebug(v ...interface{}) {
-	logger.SetPrefix("DEBUG ")
-	logger.Println(v...)
+	Logger.SetPrefix("DEBUG ")
+	Logger.Println(v...)
 }
 
 func logInfo(v ...interface{}) {
-	logger.SetPrefix("INFO  ")
-	logger.Println(v...)
+	Logger.SetPrefix("INFO  ")
+	Logger.Println(v...)
 }
 
 func panicOnErr(err error) {
@@ -55,7 +66,7 @@ func panicOnErr(err error) {
 
 func logOnErr(err error) {
 	if err != nil {
-		logger.Println(err)
+		Logger.Println(err)
 	}
 }
 
@@ -144,7 +155,7 @@ func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage s
 
 func logPinnedMessages(s *discordgo.Session) {
     logInfo("getPinnedMessages called")
-    pinned, err := s.ChannelMessagesPinned(mainChannelID)
+    pinned, err := s.ChannelMessagesPinned(DiscordMChanID)
     logOnErr(err)
     logInfo(len(pinned), "messages are pinned:")
     for _, message := range pinned {
@@ -154,33 +165,13 @@ func logPinnedMessages(s *discordgo.Session) {
 
 func printMessageByID(s *discordgo.Session, chID string, mesID string) {
     logInfo("printMessageByID called")
-    message, err := s.ChannelMessage(mainChannelID, mesID)
+    message, err := s.ChannelMessage(DiscordMChanID, mesID)
     if err != nil {
         logInfo("printMessageByID error: ", err)
         return
     }
     err = sendMessage(s, chID, message.Content)
     logOnErr(err)
-}
-
-func main() {
-    logInfo("Logging in...")
-    session, err := discordgo.New(discordToken)
-    logInfo("Using bot account token...")
-    u, err := session.User("@me")
-    logOnErr(err)
-    botID = u.ID
-    logInfo("Got BotID =", botID)
-    logInfo("Adding handlers...")
-    setup(session)
-    logInfo("Opening session...")
-	err = session.Open()
-	logOnErr(err)
-    logInfo("Starting guild watcher...")
-    runGuildWatcher(session)
-	logInfo("Bot is now running.\nPress CTRL-C to exit...")
-	<-make(chan struct{})
-	return
 }
 
 func setup(session *discordgo.Session) {
