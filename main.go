@@ -15,6 +15,14 @@ func logInfo(v ...interface{}) {
 	logger.Println(v...)
 }
 
+func determineListenAddress() (string, error) {
+  port := os.Getenv("PORT")
+  if port == "" {
+    return "", fmt.Errorf("$PORT not set")
+  }
+  return ":" + port, nil
+}
+
 func watcherHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintln(w, "Starting guild watcher...")
     go bot.RunGuildWatcher()
@@ -24,10 +32,12 @@ func aliveHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintln(w, "Hi there! I'm alive! :D")
 }
 
-func httpStart() {
+func httpStart(addr string) {
     http.HandleFunc("/", aliveHandler)
     http.HandleFunc("/startwatcher", watcherHandler)
-    http.ListenAndServe(":8080", nil)
+    if err := http.ListenAndServe(addr, nil); err != nil {
+        panic(err)
+    }
 }
 
 func init() {
@@ -47,8 +57,12 @@ func init() {
 
 func main() {
     logInfo("Starting bot...")
+    addr, err := determineListenAddress()
+    if err != nil {
+        log.Fatal(err)
+    }
     bot.Start()
     logInfo("Starting handler...")
-	httpStart()
+	httpStart(addr)
 	logInfo("Bot is now running.")
 }
