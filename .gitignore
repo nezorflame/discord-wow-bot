@@ -28,4 +28,4 @@ _testmain.go
 
 # ignore binaries
 discord-wow-bot
-debug*
+debug
