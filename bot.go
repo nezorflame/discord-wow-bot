@@ -1,7 +1,6 @@
 package main
 
 import (
-    "flag"
     "strings"
     "log"
     "time"
@@ -25,18 +24,13 @@ func init() {
     // Create initials.
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
 
-    // Parse command line arguments.
-    // discordToken = os.Getenv("dt")
-    // wowToken = os.Getenv("wt")
-    // googleToken = os.Getenv("gt")
-    // mainChannelID = os.Getenv("mc")
-    flag.StringVar(&discordToken, "dt", "", "Account Token")
-    flag.StringVar(&wowToken, "wt", "", "WoWAPI dev.battle.net Token")
-    flag.StringVar(&googleToken, "gt", "", "Google URL Shortener Token")
-    flag.StringVar(&mainChannelID, "mc", "", "Main Channel ID")
-    flag.Parse()
+    // Parse options.
+    discordToken = os.Getenv("dt")
+    wowToken = os.Getenv("wt")
+    googleToken = os.Getenv("gt")
+    mainChannelID = os.Getenv("mc")
     if discordToken == "" || wowToken == "" || mainChannelID == "" || googleToken == "" {
-        flag.PrintDefaults()
+        log.Fatalln("Not enough variables to start! Abort mission! ABORT!!!")
         os.Exit(1)
     }
     discordToken = "Bot " + discordToken
