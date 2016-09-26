@@ -1,6 +1,6 @@
 {
   "name": "discord-wow-bot",
-  "description": "A Discord bot for managing the Аэтернум WoW guild server",
+  "description": "A Discord bot for managing the WoW guild server",
   "scripts": {
   },
   "env": {
