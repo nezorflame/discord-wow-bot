@@ -44,8 +44,6 @@ func Start() {
 	logOnErr(err)
     logInfo("Starting guild watcher...")
     runGuildWatcher(session)
-	logInfo("Bot is now running.\nPress CTRL-C to exit...")
-	<-make(chan struct{})
 }
 
 func logDebug(v ...interface{}) {
@@ -182,17 +180,11 @@ func setup(session *discordgo.Session) {
 func runGuildWatcher(s *discordgo.Session) {
     // lChannel := make(chan string)
     // legendaries := new([]string) 
-    // for {
-    //     getGuildLegendaries(legendaries, lChannel)
-    //     *legendaries = append(*legendaries, <-lChannel)
-    //     time.Sleep(60 * time.Second)
-    // }
-    wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
-}
-
-func getGuildLegendaries(leg *[]string, c chan string) {
-    // legendaries, err := wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
-    
+    for {
+        wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
+        // *legendaries = append(*legendaries, <-lChannel)
+        time.Sleep(5 * time.Minute)
+    }
 }
 
 // This function will be called (due to AddHandler above) every time a new
