@@ -16,7 +16,7 @@ func logInfo(v ...interface{}) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+    fmt.Fprintln(w, "Hi there, I'm alive! :)")
 }
 
 func httpStart() {
