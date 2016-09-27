@@ -1,1 +1,1 @@
-web: discord-wow-bot
+worker: discord-wow-bot
