@@ -63,10 +63,11 @@ func main() {
 	logInfo("Bot is now running.")
     go startWatcher()
     go pinger()
+    logInfo("Watchers started OK")
 }
 
 func startWatcher() {
-    log.Println("Starting guild watcher...")
+    logInfo("Starting guild watcher...")
     for {
         bot.RunGuildWatcher()
         time.Sleep(5 * time.Minute)
@@ -75,7 +76,7 @@ func startWatcher() {
 
 func pinger() {
     for {
-        log.Println("ping...")
+        logInfo("ping...")
         http.Get("https://discord-wow-bot.herokuapp.com/")
         time.Sleep(time.Minute)
     }
