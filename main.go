@@ -75,6 +75,7 @@ func startWatcher() {
 
 func pinger() {
     for {
+        log.Println("ping...")
         http.Get("https://discord-wow-bot.herokuapp.com/")
         time.Sleep(time.Minute)
     }
