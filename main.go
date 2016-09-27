@@ -6,6 +6,7 @@ import (
     "net/http"
     "os"
     "github.com/nezorflame/discord-wow-bot/bot"
+    "time"
 )
 
 var logger *log.Logger
@@ -23,18 +24,13 @@ func determineListenAddress() (string, error) {
   return ":" + port, nil
 }
 
-func watcherHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Starting guild watcher...")
-    go bot.RunGuildWatcher()
-}
-
 func aliveHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintln(w, "Hi there! I'm alive! :D")
+    log.Println("pong!")
 }
 
 func httpStart(addr string) {
     http.HandleFunc("/", aliveHandler)
-    http.HandleFunc("/startwatcher", watcherHandler)
     if err := http.ListenAndServe(addr, nil); err != nil {
         panic(err)
     }
@@ -65,4 +61,21 @@ func main() {
     logInfo("Starting handler...")
 	httpStart(addr)
 	logInfo("Bot is now running.")
+    go startWatcher()
+    go pinger()
+}
+
+func startWatcher() {
+    log.Println("Starting guild watcher...")
+    for {
+        bot.RunGuildWatcher()
+        time.Sleep(5 * time.Minute)
+    }
+}
+
+func pinger() {
+    for {
+        http.Get("https://discord-wow-bot.herokuapp.com/")
+        time.Sleep(time.Minute)
+    }
 }
