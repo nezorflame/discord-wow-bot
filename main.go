@@ -53,17 +53,17 @@ func init() {
 
 func main() {
     logInfo("Starting bot...")
-    addr, err := determineListenAddress()
-    if err != nil {
-        log.Fatal(err)
-    }
+    // addr, err := determineListenAddress()
+    // if err != nil {
+    //     log.Fatal(err)
+    // }
     bot.Start()
-    logInfo("Starting handler...")
-	httpStart(addr)
+    // logInfo("Starting handler...")
+	// httpStart(addr)
 	logInfo("Bot is now running.")
     go startWatcher()
-    go pinger()
-    logInfo("Watchers started OK")
+    // go pinger()
+    // logInfo("Watchers started OK")
 }
 
 func startWatcher() {
