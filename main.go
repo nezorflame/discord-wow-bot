@@ -3,7 +3,6 @@ package main
 import (
     "fmt"
     "log"
-    "net/http"
     "os"
     "github.com/nezorflame/discord-wow-bot/bot"
     "time"
@@ -24,18 +23,6 @@ func determineListenAddress() (string, error) {
   return ":" + port, nil
 }
 
-func aliveHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Hi there! I'm alive! :D")
-    log.Println("pong!")
-}
-
-func httpStart(addr string) {
-    http.HandleFunc("/", aliveHandler)
-    if err := http.ListenAndServe(addr, nil); err != nil {
-        panic(err)
-    }
-}
-
 func init() {
     // Create initials.
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
@@ -53,17 +40,10 @@ func init() {
 
 func main() {
     logInfo("Starting bot...")
-    // addr, err := determineListenAddress()
-    // if err != nil {
-    //     log.Fatal(err)
-    // }
     bot.Start()
-    // logInfo("Starting handler...")
-	// httpStart(addr)
 	logInfo("Bot is now running.")
     go startWatcher()
-    // go pinger()
-    // logInfo("Watchers started OK")
+    <-make(chan struct{})
 }
 
 func startWatcher() {
@@ -71,13 +51,5 @@ func startWatcher() {
     for {
         bot.RunGuildWatcher()
         time.Sleep(5 * time.Minute)
-    }
-}
-
-func pinger() {
-    for {
-        logInfo("ping...")
-        http.Get("https://discord-wow-bot.herokuapp.com/")
-        time.Sleep(time.Minute)
     }
 }
