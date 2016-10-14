@@ -249,15 +249,15 @@ func GetGuildProfs(realmName, guildName string, param string) ([]map[string]stri
         switch len(m.Member.Professions.PrimaryProfs) {
             case 0:
                 gMember["FirstProf"] = "Нет"
-                gMember["FirstProfLevel"] = " "
+                gMember["FirstProfLevel"] = "-"
                 gMember["SecondProf"] = "Нет"
-                gMember["SecondProfLevel"] = " "
+                gMember["SecondProfLevel"] = "-"
             case 1:
                 gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
                 gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + 
                                             " | " + m.Member.Professions.PrimaryProfs[0].Link
                 gMember["SecondProf"] = "Нет"
-                gMember["SecondProfLevel"] = " "
+                gMember["SecondProfLevel"] = "-"
             case 2:
                 gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
                 gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) + 

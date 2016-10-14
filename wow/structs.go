@@ -113,6 +113,7 @@ type Character struct {
     LastModified        int             `json:"lastModified"`
     Items               Items           `json:"items"`
     Professions         Professions     `json:"professions"`
+    Link                string
 }
 
 // Specialization - struct for a WoW character specialization

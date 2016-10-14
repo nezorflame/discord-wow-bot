@@ -309,14 +309,15 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
         AddColumn("Уровень", 7, fmttab.AlignLeft).
         AddColumn("Класс", 18, fmttab.AlignLeft).
         AddColumn("Специализация", 18, fmttab.AlignLeft).
-        AddColumn("Уровень предм.", 14, fmttab.AlignLeft)
+        AddColumn("iLevel", 14, fmttab.AlignLeft).
+        AddColumn("Армори", 14, fmttab.AlignLeft).
     for _, member := range guildMembersInfo {
         tab.AppendData(map[string]interface{} {
             "Имя" : member["Name"],
             "Уровень" : member["Level"],
             "Класс" : member["Class"],
             "Специализация" : member["Spec"],
-            "Уровень предм." : member["ItemLevel"],
+            "iLevel" : member["ItemLevel"],
         })
     }
     err = sendMessage(s, m.ChannelID, "```" + tab.String() + "```")

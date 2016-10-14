@@ -196,6 +196,12 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
     if err != nil {
         return nil, err
     }
+    shortLink, err := getArmoryLink(&character.RealmSlug, characterName)
+    if err != nil {
+        logInfo(err)
+        return &character.Items, err
+    }
+    character.Link = shortLink
     return &character.Items, nil
 }
 
@@ -239,6 +245,29 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
         profs.SecondaryProfs = append(profs.SecondaryProfs, *prof)
     }
     return profs, nil
+}
+
+func getArmoryLink(rSlug, cName *string) (string, error) {
+    link := fmt.Sprintf(consts.WoWArmoryLink, region, locale[:2], *rSlug, *cName)
+    apiLink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
+    link = `{"longUrl": "` + link + `"}`
+    var jsonStr = []byte(link)
+    req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    panicOnErr(err)
+    defer resp.Body.Close()
+    body, err := ioutil.ReadAll(resp.Body)
+    panicOnErr(err)
+    shortLink, err := getURLFromJSON([]byte(body))
+    if err != nil {
+        logInfo(err)
+        return "", err
+    }
+
+    return *shortLink, nil
 }
 
 func getProfShortLink(rSlug, cName, pName *string) (string, error) {
