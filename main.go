@@ -1,10 +1,10 @@
 package main
 
 import (
+    "github.com/nezorflame/discord-wow-bot/bot"
     "fmt"
     "log"
     "os"
-    "github.com/nezorflame/discord-wow-bot/bot"
     "time"
 )
 

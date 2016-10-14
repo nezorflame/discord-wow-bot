@@ -26,6 +26,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
     logInfo("sorting guild members...")
     var gMembers MembersList
     gMembers = sortGuildMembersByString(*ml, "name", "asc")
+    length := len(gMembers)
     if len(params) == 0 || params[0] == "" {
         gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
         gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
@@ -33,23 +34,32 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
         return gMembers
     }
     for _, p := range params {
-        s := strings.Split(p, "=")
-        if len(s) < 2 {
-            logInfo("Parameter", p, "is bad! Ignoring...")
-            continue
-        }
-        pName := s[0]
-        sOrder := s[1]
-        switch pName {
-            case "name", "class", "spec":
-                gMembers = sortGuildMembersByString(gMembers, pName, sOrder)
-            case "level", "ilvl":
-                gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
+        switch p {
+            case "top5":
+                length = 5
+                continue
+            case "top10":
+                length = 10
+                continue
             default:
-                logInfo("Unknown parameter", pName, "so skipping...")
+                s := strings.Split(p, "=")
+                if len(s) < 2 {
+                    logInfo("Parameter", p, "is bad! Ignoring...")
+                    continue
+                }
+                pName := s[0]
+                sOrder := s[1]
+                switch pName {
+                    case "name", "class", "spec":
+                        gMembers = sortGuildMembersByString(gMembers, pName, sOrder)
+                    case "level", "ilvl":
+                        gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
+                    default:
+                        logInfo("Unknown parameter", pName, "so skipping...")
+                }
         }
     }
-    return gMembers
+    return gMembers[:length]
 }
 
 func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
