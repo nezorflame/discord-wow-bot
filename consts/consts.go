@@ -54,7 +54,7 @@ __Команды для WoW'a:__
     WoWAPICharacterProfsLink    = "https://%v.api.battle.net/wow/character/%v/%v?fields=professions&locale=%v&apikey=%v"
     WoWAPIItemLink              = "https://%v.api.battle.net/wow/item/%d?locale=%v&apikey=%v"
 
-    WoWArmoryLink               = "http://%v.battle.net/wow/%v/character/%v/%v"
+    WoWArmoryLink               = "http://%v.battle.net/wow/%v/character/%v/%v/advanced"
     WoWArmoryProfLink           = "http://%v.battle.net/wow/%v/character/%v/%v/profession/%v"
 
     WowheadItemLink             = "http://ru.wowhead.com/item=%d"
