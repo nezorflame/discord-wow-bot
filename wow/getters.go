@@ -136,6 +136,12 @@ func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
     m.Member.Class  = classes[m.Member.ClassInt]
     m.Member.Gender = genders[m.Member.GenderInt]
     m.Member.Race   = races[m.Member.RaceInt]
+    m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
+    if err != nil {
+        c <- m
+        logInfo(err)
+        return
+    }
     shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
     if err != nil {
         c <- m
@@ -199,10 +205,6 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
     if err != nil {
         return nil, err
     }
-    character.RealmSlug, err = getRealmSlugByName(characterRealm)
-    if err != nil {
-        return nil, err
-    }
     return &character.Items, nil
 }
 
@@ -220,10 +222,6 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
     character, err := getCharacterFromJSON([]byte(body))
     if err != nil {
         logInfo(err)
-        return nil, err
-    }
-    character.RealmSlug, err = getRealmSlugByName(characterRealm)
-    if err != nil {
         return nil, err
     }
     var profs = new(Professions)
