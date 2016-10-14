@@ -214,6 +214,7 @@ func GetGuildMembers(realmName, guildName string, params []string) ([]map[string
             gMember["Spec"] = "Нет инфы"
         }
         gMember["ItemLevel"] = strconv.Itoa(m.Member.Items.AvgItemLvlEq)
+        gMember["Link"] = m.Member.Link
         guildMembersList = append(guildMembersList, gMember)
     }
     return guildMembersList, nil
