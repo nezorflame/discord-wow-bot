@@ -27,12 +27,6 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
     var gMembers MembersList
     gMembers = sortGuildMembersByString(*ml, "name", "asc")
     length := len(gMembers)
-    if len(params) == 0 || params[0] == "" {
-        gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
-        gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
-        logInfo("No params, exiting with default sort order...")
-        return gMembers
-    }
     for _, p := range params {
         switch p {
             case "top5":
@@ -58,6 +52,11 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
                         logInfo("Unknown parameter", pName, "so skipping...")
                 }
         }
+    }
+    if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
+        gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
+        gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
+        logInfo("No params, using default sort order...")
     }
     return gMembers[:length]
 }
