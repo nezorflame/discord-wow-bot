@@ -136,6 +136,13 @@ func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
     m.Member.Class  = classes[m.Member.ClassInt]
     m.Member.Gender = genders[m.Member.GenderInt]
     m.Member.Race   = races[m.Member.RaceInt]
+    shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
+    if err != nil {
+        c <- m
+        logInfo(err)
+        return
+    }
+    m.Member.Link = shortLink
     switch t {
         case "Items":
             items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
@@ -196,12 +203,6 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
     if err != nil {
         return nil, err
     }
-    shortLink, err := getArmoryLink(&character.RealmSlug, characterName)
-    if err != nil {
-        logInfo(err)
-        return &character.Items, err
-    }
-    character.Link = shortLink
     return &character.Items, nil
 }
 
