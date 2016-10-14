@@ -56,7 +56,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
     if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
         gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
         gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
-        logInfo("No params, using default sort order...")
+        logInfo("No sorting params, using default sort order...")
     }
     return gMembers[:length]
 }
