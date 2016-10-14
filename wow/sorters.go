@@ -62,7 +62,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 }
 
 func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
-    logInfo("sorting guild members by string:", key)
+    logInfo("sorting guild members by string:", key, " and order: ", order)
     gMembersMap := make(map[string]MembersList)
     sortedMembers := new(MembersList)
     var keys []string
@@ -117,7 +117,7 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
 }
 
 func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
-    logInfo("sorting guild members by int:", key)
+    logInfo("sorting guild members by int:", key, " and order: ", order)
     gMembersMap := make(map[int]MembersList)
     sortedMembers := new(MembersList)
     var keys []int
