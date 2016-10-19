@@ -183,7 +183,7 @@ func RunGuildWatcher(s *discordgo.Session) {
     // TODO: Very dirty, need to rewrite
     legendaries := make(map[string]bool)
     for {
-        messages, err := wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
+        messages, err := wow.GetGuildLegendaries(consts.GuildRealm, consts.GuildName)
         panicOnErr(err)
         for _, m := range messages {
             if _, ok := legendaries[m]; !ok {
