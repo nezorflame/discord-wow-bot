@@ -63,7 +63,7 @@ func getUpdatedGuildNews(realmName, guildName string) (*NewsList, error) {
     done := make(chan NewsList, 1)
     go gNews.refillNews(done)
     gNews = <-done
-    gNews = gNews.sortGuildNewsByTimestamp()
+    gNews = gNews.SortGuildNews()
     logInfo("Got updated guild news")
     return &gNews, nil
 }

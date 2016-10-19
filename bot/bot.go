@@ -193,7 +193,7 @@ func RunGuildWatcher(s *discordgo.Session) {
                 legendaries[m] = true
             }
         }
-        time.Sleep(30 * time.Minute)
+        time.Sleep(5 * time.Minute)
     }
 }
 

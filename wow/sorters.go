@@ -5,8 +5,10 @@ import (
     "strings"
 )
 
-func (nl *NewsList) sortGuildNewsByTimestamp() (gNews NewsList) {
+// SortGuildNews - function for sorting the guild news by timestamp
+func (nl *NewsList) SortGuildNews() (gNews NewsList) {
     logInfo("sorting guild news by timestamp...")
+    logInfo(*nl)
     gNewsTimeMap := make(map[float64]News)
     var keys []float64
     for _, n := range *nl {
@@ -17,6 +19,7 @@ func (nl *NewsList) sortGuildNewsByTimestamp() (gNews NewsList) {
     for _, k := range keys {
         gNews = append(gNews, gNewsTimeMap[k])
     }
+    logInfo(gNews)
     return gNews
 }
 
