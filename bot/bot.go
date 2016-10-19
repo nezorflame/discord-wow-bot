@@ -187,8 +187,9 @@ func RunGuildWatcher(s *discordgo.Session) {
         panicOnErr(err)
         for _, m := range messages {
             if _, ok := legendaries[m]; !ok {
-                err := sendMessage(s, DiscordMChanID, m)
-                logOnErr(err)
+                // err := sendMessage(s, DiscordMChanID, m)
+                // logOnErr(err)
+                log.Println(m)
                 legendaries[m] = true
             }
         }
