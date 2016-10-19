@@ -25,7 +25,7 @@ func getRealms() (*[]Realm, error) {
     return &realms.RealmList, nil
 }
 
-func getGuildNews(guildRealm, guildName *string) (NewsList, error) {
+func getGuildNews(guildRealm, guildName *string) (gNews NewsList, err error) {
     logInfo("getting guild news...")
     apiLink := fmt.Sprintf(consts.WoWAPIGuildNewsLink, region, strings.Replace(*guildRealm, " ", "%20", -1), 
         strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
@@ -36,11 +36,19 @@ func getGuildNews(guildRealm, guildName *string) (NewsList, error) {
     panicOnErr(err)
     gInfo, err := getGuildInfoFromJSON([]byte(body))
     if err != nil {
-        return nil, err
+        return
     }
+    now := time.Now()
+    before := now.Add(-24 * time.Hour)
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
-    return gInfo.GuildNewsList, nil
+    for _, n := range gInfo.GuildNewsList {
+        n.EventTime = time.Unix(n.Timestamp / 1000, 0)
+        if inTimeSpan(before, now, n.EventTime) {
+            gNews = append(gNews, n)
+        }
+    }
+    return
 }
 
 func getUpdatedGuildNews(realmName, guildName string) (*NewsList, error) {
@@ -101,30 +109,37 @@ func (ml *MembersList) getAdditionalMembers() error {
     return nil
 }
 
-func (ml MembersList) refillMembers(t string, done chan MembersList) {
-    guildMembers := new(MembersList)
-    c := make(chan GuildMember, len(ml))
-    for i := range ml {
-        go updateCharacter(&ml[i], t, c)
+func (ml *MembersList) refillMembers(t string, done chan MembersList) {
+    var guildMembers MembersList
+    c := make(chan GuildMember, len(*ml))
+    for _, m := range *ml {
+        go updateCharacter(&m, t, c)
     }
-    for i := 0; i < len(ml); i++ {
-        *guildMembers = append(*guildMembers, <-c)
+    for i := 0; i < len(*ml); i++ {
+        guildMembers = append(guildMembers, <-c)
     }
     logInfo("Members refilled with", t)
-    done <- *guildMembers
+    done <- guildMembers
 }
 
-func (nl NewsList) refillNews(done chan NewsList){
-    guildNews := new(NewsList)
-    c := make(chan News, len(nl))
-    for i := range nl {
-        go updateNews(&nl[i], c)
+func (nl *NewsList) refillNews(done chan NewsList){
+    var guildNews NewsList
+    for _, n := range *nl {
+        if n.Type == "itemLoot" {
+            guildNews = append(guildNews, n)
+        }
     }
-    for i := 0; i < len(nl); i++ {
-        *guildNews = append(*guildNews, <-c)
+    l := len(guildNews)
+    c := make(chan News, l)
+    for _, n := range guildNews {
+        go updateNews(n, c)
+    }
+    guildNews = make(NewsList, 0)
+    for i := 0; i < l; i++ {
+        guildNews = append(guildNews, <-c)
     }
     logInfo("News refilled")
-    done <- *guildNews
+    done <- guildNews
 }
 
 func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
@@ -176,18 +191,17 @@ func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
     c <- *newMember
 }
 
-func updateNews(newsrecord *News, c chan News) {
+func updateNews(newsrecord News, c chan News) {
     if newsrecord.Type == "itemLoot" {
         item, err := getItemByID(&newsrecord.ItemID)
         if (err != nil) {
-            c <- *newsrecord
+            c <- newsrecord
             logInfo(err)
             return
         }
         newsrecord.ItemInfo = *item
     }
-    newsrecord.EventTime = time.Unix(newsrecord.Timestamp / 1000, 0)
-    c <- *newsrecord
+    c <- newsrecord
 }
 
 func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {

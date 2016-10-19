@@ -184,7 +184,7 @@ func RunGuildWatcher() {
     for {
         wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
         // *legendaries = append(*legendaries, <-lChannel)
-        time.Sleep(5 * time.Minute)
+        time.Sleep(30 * time.Minute)
     }
 }
 

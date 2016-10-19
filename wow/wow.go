@@ -174,12 +174,10 @@ func GetGuildLegendariesList(realmName, guildName string) ([]string, error) {
     if err != nil {
         return nil, err
     }
-    now := time.Now()
-    before := now.Add(-21 * 24 * time.Hour)
     for _, n := range *gNews {
         if n.Type != "itemLoot" { continue }
         isLegendary := n.ItemInfo.Quality == 5
-        if inTimeSpan(before, now, n.EventTime) && isLegendary {
+        if isLegendary {
             logInfo(n.EventTime, n.Character, n.ItemInfo.Name, isLegendary)
             message := n.EventTime.String() + ": " + n.Character + " got legendary item with id = " + strconv.Itoa(n.ItemID)
             legendaries = append(legendaries, message)
