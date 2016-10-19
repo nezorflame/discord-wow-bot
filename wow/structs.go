@@ -88,6 +88,7 @@ type Item struct {
     Name                string          `json:"name"`
     Quality             int             `json:"quality"`
     ItemLevel           int             `json:"itemLevel"`
+    Link                string
 }
 
 // Character - struct for a WoW character

@@ -324,6 +324,7 @@ func getItemByID(itemID *int) (*Item, error) {
         logInfo(err)
         return new(Item), err
     }
+    item.Link = apiLink
     return item, nil
 }
 
