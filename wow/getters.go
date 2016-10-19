@@ -43,7 +43,10 @@ func getGuildNews(guildRealm, guildName *string) (gNews NewsList, err error) {
     // Fill string valuables
     gInfo.Side = factions[gInfo.SideInt]
     for _, n := range gInfo.GuildNewsList {
-        n.EventTime = time.Unix(n.Timestamp / 1000, 0)
+        eventTime := time.Unix(n.Timestamp / 1000, 0)
+        utc, err := time.LoadLocation(consts.Timezone)
+        panicOnErr(err)
+        n.EventTime = eventTime.In(utc)
         if inTimeSpan(before, now, n.EventTime) {
             gNews = append(gNews, n)
         }

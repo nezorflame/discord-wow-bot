@@ -3,7 +3,7 @@ package consts
 const (
     Region                      = "eu"
     Locale                      = "ru_RU"
-    UTCTimezone                 = 3
+    Timezone                    = "Europe/Moscow"
     GuildName                   = "Аэтернум"
     GuildRealm                  = "Ревущий фьорд"
     Pong                        = "Pong!"
