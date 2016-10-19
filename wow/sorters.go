@@ -6,21 +6,28 @@ import (
 )
 
 // SortGuildNews - function for sorting the guild news by timestamp
-func (nl *NewsList) SortGuildNews() (gNews NewsList) {
+func (nl *NewsList) SortGuildNews() (NewsList) {
     logInfo("sorting guild news by timestamp...")
-    logInfo(*nl)
-    gNewsTimeMap := make(map[float64]News)
+    gNewsTimeMap := make(map[float64]NewsList)
+    sortedNews := new(NewsList)
     var keys []float64
     for _, n := range *nl {
-        gNewsTimeMap[float64(n.Timestamp)] = n
-        keys = append(keys, float64(n.Timestamp))
+        k := float64(n.Timestamp)
+        news := gNewsTimeMap[k]
+        if !news.checkNSliceForNews(n) {
+            gNewsTimeMap[k] = append(gNewsTimeMap[k], n)
+            if !checkFloatSliceForValue(keys, k) {
+                keys = append(keys, k)
+            }
+        }
     }
     sort.Float64s(keys)
     for _, k := range keys {
-        gNews = append(gNews, gNewsTimeMap[k])
+        for _, n := range gNewsTimeMap[k] {
+            *sortedNews = append(*sortedNews, n)
+        }
     }
-    logInfo(gNews)
-    return gNews
+    return *sortedNews
 }
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
@@ -70,34 +77,24 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
     var keys []string
     ascOrder := true
     for _, m := range ml {
+        var k string
         switch key {
             case "name":
-                members := gMembersMap[m.Member.Name]
-                if !members.checkMSliceForMember(m) {
-                    gMembersMap[m.Member.Name] = append(gMembersMap[m.Member.Name], m)
-                    if !checkStrSliceForValue(keys, m.Member.Name) {
-                        keys = append(keys, m.Member.Name)
-                    }
-                }
+                k = m.Member.Name
             case "class":
-                members := gMembersMap[m.Member.Class]
-                if !members.checkMSliceForMember(m) {
-                    gMembersMap[m.Member.Class] = append(gMembersMap[m.Member.Class], m)
-                    if !checkStrSliceForValue(keys, m.Member.Class) {
-                        keys = append(keys, m.Member.Class)
-                    }
-                }
+                k = m.Member.Class
             case "spec":
-                members := gMembersMap[m.Member.Spec.Name]
-                if !members.checkMSliceForMember(m) {
-                    gMembersMap[m.Member.Spec.Name] = append(gMembersMap[m.Member.Spec.Name], m)
-                    if !checkStrSliceForValue(keys, m.Member.Spec.Name) {
-                        keys = append(keys, m.Member.Spec.Name)
-                    }
-                }
+                k = m.Member.Spec.Name
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
                 return ml
+        }
+        members := gMembersMap[k]
+        if !members.checkMSliceForMember(m) {
+            gMembersMap[k] = append(gMembersMap[k], m)
+            if !checkStrSliceForValue(keys, k) {
+                keys = append(keys, k)
+            }
         }
     }
     if order == "desc" {
@@ -125,26 +122,22 @@ func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
     var keys []int
     ascOrder := true
     for _, m := range ml {
+        var k int
         switch key {
             case "level":
-                members := gMembersMap[m.Member.Level]
-                if !members.checkMSliceForMember(m) {
-                    gMembersMap[m.Member.Level] = append(gMembersMap[m.Member.Level], m)
-                    if !checkIntSliceForValue(keys, m.Member.Level) {
-                        keys = append(keys, m.Member.Level)
-                    }
-                }
+                k = m.Member.Level
             case "ilvl":
-                members := gMembersMap[m.Member.Items.AvgItemLvlEq]
-                if !members.checkMSliceForMember(m) {
-                    gMembersMap[m.Member.Items.AvgItemLvlEq] = append(gMembersMap[m.Member.Items.AvgItemLvlEq], m)
-                    if !checkIntSliceForValue(keys, m.Member.Items.AvgItemLvlEq) {
-                        keys = append(keys, m.Member.Items.AvgItemLvlEq)
-                    }
-                }
+                k = m.Member.Items.AvgItemLvlEq
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
                 return ml
+        }
+        members := gMembersMap[k]
+        if !members.checkMSliceForMember(m) {
+            gMembersMap[k] = append(gMembersMap[k], m)
+            if !checkIntSliceForValue(keys, k) {
+                keys = append(keys, k)
+            }
         }
     }
     if order == "desc" {
@@ -172,7 +165,25 @@ func (ml *MembersList) checkMSliceForMember(member GuildMember) bool {
     return false
 }
 
+func (nl *NewsList) checkNSliceForNews(news News) bool {
+    for _, n := range *nl {
+        if n.Timestamp == news.Timestamp && n.Character == news.Character {
+            return true
+        }
+    }
+    return false
+}
+
 func checkIntSliceForValue(slice []int, value int) bool {
+    for _, i := range slice {
+        if i == value {
+            return true
+        }
+    }
+    return false
+}
+
+func checkFloatSliceForValue(slice []float64, value float64) bool {
     for _, i := range slice {
         if i == value {
             return true
