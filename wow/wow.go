@@ -175,7 +175,6 @@ func GetGuildLegendariesList(realmName, guildName string) ([]string, error) {
         return nil, err
     }
     for _, n := range *gNews {
-        if n.Type != "itemLoot" { continue }
         isLegendary := n.ItemInfo.Quality == 5
         if isLegendary {
             logInfo(n.EventTime, n.Character, n.ItemInfo.Name, isLegendary)

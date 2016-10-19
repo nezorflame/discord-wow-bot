@@ -44,6 +44,7 @@ func Start() {
 	err = session.Open()
 	logOnErr(err)
     logInfo("Starting guild watcher...")
+    RunGuildWatcher(session)
 }
 
 func logDebug(v ...interface{}) {
@@ -178,12 +179,19 @@ func setup(session *discordgo.Session) {
 }
 
 // RunGuildWatcher - function for starting the guild news watcher
-func RunGuildWatcher() {
-    // lChannel := make(chan string)
-    // legendaries := new([]string) 
+func RunGuildWatcher(s *discordgo.Session) {
+    // TODO: Very dirty, need to rewrite
+    legendaries := make(map[string]bool)
     for {
-        wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
-        // *legendaries = append(*legendaries, <-lChannel)
+        messages, err := wow.GetGuildLegendariesList(consts.GuildRealm, consts.GuildName)
+        panicOnErr(err)
+        for _, m := range messages {
+            if _, ok := legendaries[m]; !ok {
+                err := sendMessage(s, DiscordMChanID, m)
+                logOnErr(err)
+                legendaries[m] = true
+            }
+        }
         time.Sleep(30 * time.Minute)
     }
 }

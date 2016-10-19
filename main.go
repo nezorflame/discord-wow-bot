@@ -42,14 +42,6 @@ func main() {
     logInfo("Starting bot...")
     bot.Start()
 	logInfo("Bot is now running.")
-    go startWatcher()
     <-make(chan struct{})
 }
 
-func startWatcher() {
-    logInfo("Starting guild watcher...")
-    for {
-        bot.RunGuildWatcher()
-        time.Sleep(5 * time.Minute)
-    }
-}
