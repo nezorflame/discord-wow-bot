@@ -5,7 +5,6 @@ import (
     "fmt"
     "log"
     "os"
-    "time"
 )
 
 var logger *log.Logger
