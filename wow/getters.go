@@ -324,7 +324,7 @@ func getItemByID(itemID *int) (*Item, error) {
         logInfo(err)
         return new(Item), err
     }
-    item.Link = apiLink
+    item.Link = fmt.Sprintf(consts.WowheadItemLink, *itemID)
     return item, nil
 }
 
