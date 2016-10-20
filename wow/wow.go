@@ -46,6 +46,12 @@ func panicOnErr(err error) {
 	}
 }
 
+func logOnErr(err error) {
+	if err != nil {
+		logDebug(err)
+	}
+}
+
 func inTimeSpan(start, end, check time.Time) bool {
 	return check.After(start) && check.Before(end)
 }

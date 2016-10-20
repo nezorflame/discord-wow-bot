@@ -97,7 +97,7 @@ func getGuildMembersList(guildRealm, guildName *string) (ml MembersList, err err
 		panicOnErr(err)
 		membersJSON = []byte(body)
         err = db.Put("Main", consts.GuildMembersBucketKey, membersJSON)
-        panicOnErr(err)
+        logOnErr(err)
 	}
 	gInfo, err := getGuildInfoFromJSON(membersJSON)
 	if err != nil {
