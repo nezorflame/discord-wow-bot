@@ -28,6 +28,7 @@ func panicOnError(err error) {
 func Init() {
 	// Open the my.db data file in your current directory.
 	// It will be created if it doesn't exist.
+    var err error
     now := time.Now()
     before := now.AddDate(0, 0, -1)
     nYear, nMonth, nDay := now.Date()
@@ -35,19 +36,18 @@ func Init() {
     today = fmt.Sprintf("%d/%d/%d", nYear, nMonth, nDay)
     yesterday := fmt.Sprintf("%d/%d/%d", yYear, yMonth, yDay)
     log.Printf("Initiating bolt connection... Current bucket name is %s\n", today)
-	db, err := bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	defer db.Close()
+	db, err = bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 	panicOnError(err)
-    log.Printf("DB opened succesfully")
     err = createBucket("Items")
     panicOnError(err)
-    log.Printf("Items bucket created")
     err = createBucket(today)
     panicOnError(err)
-    log.Printf("Today's bucket created")
     err = deleteBucket(yesterday)
     logOnError(err)
-    log.Printf("Yesterday's bucket deleted")
+}
+
+func Close() {
+    db.Close()
 }
 
 func Get(bucketName, key string) (value []byte) {
