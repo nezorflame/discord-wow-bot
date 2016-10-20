@@ -47,7 +47,7 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 			return
 		}
 	}
-	gi, err := getGuildInfoFromJSON(membersJSON)
+	gi, err := getGuildInfoFromJSON(&membersJSON)
 	if err != nil {
 		return
 	}
@@ -67,7 +67,7 @@ func (ml *MembersList) getAdditionalMembers() error {
 				logOnErr(err)
 				return err
 			}
-			addGInfo, err := getGuildInfoFromJSON(respJSON)
+			addGInfo, err := getGuildInfoFromJSON(&respJSON)
 			if err != nil {
 				return err
 			}

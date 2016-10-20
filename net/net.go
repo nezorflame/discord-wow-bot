@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"log"
 )
 
 func GetJSONResponse(url string) ([]byte, error) {
@@ -26,7 +27,8 @@ func GetJSONResponse(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []byte(body), nil
+	log.Println(string(body))
+	return body, nil
 }
 
 func PostJSONResponse(url, value string) ([]byte, error) {
@@ -46,5 +48,5 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []byte(body), nil
+	return body, nil
 }

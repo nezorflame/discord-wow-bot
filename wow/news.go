@@ -31,12 +31,12 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		logOnErr(err)
 		return nil, err
 	}
-	gInfo, err := getGuildInfoFromJSON(respJSON)
+	gInfo, err := getGuildInfoFromJSON(&respJSON)
 	if err != nil {
 		return
 	}
 	now := time.Now()
-	before := now.Add(time.Duration(-5 * time.Minute))
+	before := now.Add(time.Duration(-150 * time.Minute))
 	// Fill string valuables
 	gInfo.Side = factions[gInfo.SideInt]
 	for _, n := range gInfo.GuildNewsList {

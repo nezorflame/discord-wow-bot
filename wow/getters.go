@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"strconv"
 
 	"github.com/nezorflame/discord-wow-bot/consts"
 	"github.com/nezorflame/discord-wow-bot/db"
@@ -17,7 +18,8 @@ func getRealms() (*[]Realm, error) {
 		logOnErr(err)
 		return nil, err
 	}
-	realms, err := getRealmsFromJSON(respJSON)
+	var realms Realms
+	err = realms.getRealmsFromJSON(&respJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +33,7 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
 	if err != nil {
 		return nil, err
 	}
-	character, err := getCharacterFromJSON(respJSON)
+	character, err := getCharacterFromJSON(&respJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +48,7 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
 		logInfo(err)
 		return nil, err
 	}
-	character, err := getCharacterFromJSON(respJSON)
+	character, err := getCharacterFromJSON(&respJSON)
 	if err != nil {
 		logInfo(err)
 		return nil, err
@@ -81,7 +83,7 @@ func getArmoryLink(rSlug, cName *string) (string, error) {
 		logInfo(err)
 		return "", err
 	}
-	shortLink, err := getURLFromJSON(respJSON)
+	shortLink, err := getURLFromJSON(&respJSON)
 	if err != nil {
 		logInfo(err)
 		return "", err
@@ -97,7 +99,7 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
 		logInfo(err)
 		return "", err
 	}
-	shortLink, err := getURLFromJSON(respJSON)
+	shortLink, err := getURLFromJSON(&respJSON)
 	if err != nil {
 		logInfo(err)
 		return "", err
@@ -107,25 +109,34 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
 
 func getItemByID(itemID string) (item *Item, err error) {
 	itemJSON := db.Get("Items", itemID)
+	item = new(Item)
+	flag := false
 	if itemJSON == nil {
 		apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, itemID, locale, wowAPIToken)
-		itemJSON, err := net.GetJSONResponse(apiLink)
+		itemJSON, err = net.GetJSONResponse(apiLink)
 		if err != nil {
 			logInfo(err)
-			return nil, err
+			return
 		}
 		err = db.Put("Items", itemID, itemJSON)
 		if err != nil {
-			return nil, err
+			logInfo(err)
+			return
 		}
+		flag = true
 	}
-	item, err = getItemFromJSON(itemJSON)
+	logInfo(itemID, flag)
+	if itemJSON == nil {
+		err = errors.New("Null JSON! itemID = " + itemID + ", flag = " + strconv.FormatBool(flag))
+		return
+	}
+	err = item.getItemFromJSON(&itemJSON)
 	if err != nil {
 		logInfo(err)
-		return new(Item), err
+		return
 	}
 	item.Link = fmt.Sprintf(consts.WowheadItemLink, itemID)
-	return item, nil
+	return
 }
 
 func getRealmByName(realmName string) (Realm, error) {
