@@ -13,16 +13,17 @@ import (
 
 	"github.com/nezorflame/discord-wow-bot/consts"
 	"github.com/nezorflame/discord-wow-bot/db"
+	"github.com/nezorflame/discord-wow-bot/net"
 )
 
 func getRealms() (*[]Realm, error) {
 	apiLink := fmt.Sprintf(consts.WoWAPIRealmsLink, region, locale, wowAPIToken)
-	r, err := http.Get(apiLink)
-	panicOnErr(err)
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	panicOnErr(err)
-	realms, err := getRealmsFromJSON([]byte(body))
+	respJSON, err := net.GetJSONResponse(apiLink)
+	if err != nil {
+		logOnErr(err)
+		return nil, err
+	}
+	realms, err := getRealmsFromJSON(respJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +45,12 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 	logInfo("getting guild news...")
 	apiLink := fmt.Sprintf(consts.WoWAPIGuildNewsLink, region, strings.Replace(*guildRealm, " ", "%20", -1),
 		strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
-	r, err := http.Get(apiLink)
-	panicOnErr(err)
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	panicOnErr(err)
-	gInfo, err := getGuildInfoFromJSON([]byte(body))
+	respJSON, err := net.GetJSONResponse(apiLink)
+	if err != nil {
+		logOnErr(err)
+		return nil, err
+	}
+	gInfo, err := getGuildInfoFromJSON(respJSON)
 	if err != nil {
 		return
 	}
@@ -100,12 +101,11 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 		cached = false
 		apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1),
 			strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
-		r, err := http.Get(apiLink)
-		panicOnErr(err)
-		defer r.Body.Close()
-		body, err := ioutil.ReadAll(r.Body)
-		panicOnErr(err)
-		membersJSON = []byte(body)
+		membersJSON, err = net.GetJSONResponse(apiLink)
+		if err != nil {
+			logOnErr(err)
+			return
+		}
 	}
 	gi, err := getGuildInfoFromJSON(membersJSON)
 	if err != nil {
@@ -122,12 +122,12 @@ func (ml *MembersList) getAdditionalMembers() error {
 		for guild, character := range m {
 			apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1),
 				strings.Replace(guild, " ", "%20", -1), locale, wowAPIToken)
-			r, err := http.Get(apiLink)
-			panicOnErr(err)
-			defer r.Body.Close()
-			body, err := ioutil.ReadAll(r.Body)
-			panicOnErr(err)
-			addGInfo, err := getGuildInfoFromJSON([]byte(body))
+			respJSON, err := net.GetJSONResponse(apiLink)
+			if err != nil {
+				logOnErr(err)	
+				return err
+			}
+			addGInfo, err := getGuildInfoFromJSON(respJSON)
 			if err != nil {
 				return err
 			}
@@ -149,9 +149,6 @@ func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
 			defer wg.Done()
 			gMember := updateCharacter(m, t)
 			guildMembers = append(guildMembers, gMember)
-			if len(guildMembers) % 10 == 0 {
-				time.Sleep(1 * time.Second)
-			}
 		}(m)
 	}
 	logInfo("Members refilled with", t)
@@ -206,7 +203,6 @@ func (nl *NewsList) refillNews() (guildNews NewsList) {
 			defer wg.Done()
 			news := updateNews(n)
 			guildNews = append(guildNews, news)
-			time.Sleep(1 * time.Second)
 		}(n)
 	}
 	logInfo("News refilled")
@@ -229,15 +225,11 @@ func updateNews(newsrecord News) (news News) {
 func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {
 	apiLink := fmt.Sprintf(consts.WoWAPICharacterItemsLink, region, strings.Replace(*characterRealm, " ", "%20", -1),
 		*characterName, locale, wowAPIToken)
-	r, err := http.Get(apiLink)
-	panicOnErr(err)
-	if strings.Contains(r.Status, "404") {
-		return nil, errors.New(r.Status)
+	respJSON, err := net.GetJSONResponse(apiLink)
+	if err != nil {
+		return nil, err
 	}
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	panicOnErr(err)
-	character, err := getCharacterFromJSON([]byte(body))
+	character, err := getCharacterFromJSON(respJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -247,15 +239,12 @@ func getCharacterItems(characterRealm *string, characterName *string) (*Items, e
 func getCharacterProfessions(characterRealm *string, characterName *string) (*Professions, error) {
 	apiLink := fmt.Sprintf(consts.WoWAPICharacterProfsLink, region, strings.Replace(*characterRealm, " ", "%20", -1),
 		*characterName, locale, wowAPIToken)
-	r, err := http.Get(apiLink)
-	panicOnErr(err)
-	if strings.Contains(r.Status, "404") {
-		return nil, errors.New(r.Status)
+	respJSON, err := net.GetJSONResponse(apiLink)
+	if err != nil {
+		logInfo(err)
+		return nil, err
 	}
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	panicOnErr(err)
-	character, err := getCharacterFromJSON([]byte(body))
+	character, err := getCharacterFromJSON(respJSON)
 	if err != nil {
 		logInfo(err)
 		return nil, err
@@ -283,19 +272,14 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
 }
 
 func getArmoryLink(rSlug, cName *string) (string, error) {
+	gAPILink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
 	link := fmt.Sprintf(consts.WoWArmoryLink, region, locale[:2], *rSlug, *cName)
-	apiLink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
-	link = `{"longUrl": "` + link + `"}`
-	var jsonStr = []byte(link)
-	req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	panicOnErr(err)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	panicOnErr(err)
-	shortLink, err := getURLFromJSON([]byte(body))
+	respJSON, err := net.PostJSONResponse(gAPILink, link)
+	if err != nil {
+		logInfo(err)
+		return "", err
+	}
+	shortLink, err := getURLFromJSON(respJSON)
 	if err != nil {
 		logInfo(err)
 		return "", err
@@ -304,25 +288,18 @@ func getArmoryLink(rSlug, cName *string) (string, error) {
 }
 
 func getProfShortLink(rSlug, cName, pName *string) (string, error) {
+	gAPILink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
 	link := fmt.Sprintf(consts.WoWArmoryProfLink, region, locale[:2], *rSlug, *cName, *pName)
-	apiLink := fmt.Sprintf(consts.GoogleAPIShortenerLink, googleAPIToken)
-	link = `{"longUrl": "` + link + `"}`
-	var jsonStr = []byte(link)
-	req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	panicOnErr(err)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	panicOnErr(err)
-	shortLink, err := getURLFromJSON([]byte(body))
+	respJSON, err := net.PostJSONResponse(gAPILink, link)
 	if err != nil {
 		logInfo(err)
 		return "", err
 	}
-
+	shortLink, err := getURLFromJSON(respJSON)
+	if err != nil {
+		logInfo(err)
+		return "", err
+	}
 	return *shortLink, nil
 }
 
@@ -330,17 +307,15 @@ func getItemByID(itemID string) (item *Item, err error) {
 	itemJSON := db.Get("Items", itemID)
 	if itemJSON == nil {
 		apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, itemID, locale, wowAPIToken)
-		r, err := http.Get(apiLink)
-		panicOnErr(err)
-		if strings.Contains(r.Status, "404") {
-			return new(Item), errors.New(r.Status)
+		itemJSON, err := net.GetJSONResponse(apiLink)
+		if err != nil {
+			logInfo(err)
+			return nil, err
 		}
-		defer r.Body.Close()
-		body, err := ioutil.ReadAll(r.Body)
-		panicOnErr(err)
-		itemJSON = []byte(body)
 		err = db.Put("Items", itemID, itemJSON)
-		panicOnErr(err)
+		if err != nil {
+			return nil, err
+		}
 	}
 	item, err = getItemFromJSON(itemJSON)
 	if err != nil {

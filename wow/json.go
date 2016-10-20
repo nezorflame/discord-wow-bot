@@ -1,6 +1,8 @@
 package wow
 
-import "encoding/json"
+import (
+    "encoding/json"
+)
 
 func getRealmsFromJSON(body []byte) (*Realms, error) {
     var r = new(Realms)
