@@ -167,12 +167,12 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 	m.Member.Race = races[m.Member.RaceInt]
 	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
 	if err != nil {
-		logInfo(err)
+		logInfo("updateCharacter(): unable to get realm slug:", err)
 		return m
 	}
 	shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
 	if err != nil {
-		logInfo(err)
+		logInfo("updateCharacter(): unable to get Armory link:", err)
 		return m
 	}
 	m.Member.Link = shortLink
@@ -183,11 +183,7 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 		profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
 	}
 	if err != nil {
-		logInfo(err)
-		return m
-	}
-	if err != nil {
-		logInfo(err)
+		logInfo("updateCharacter(): unable to get", t + ":", err)
 		return m
 	}
 	switch t {
@@ -218,7 +214,7 @@ func updateNews(newsrecord News) (news News) {
 	if newsrecord.Type == "itemLoot" {
 		item, err := getItemByID(strconv.Itoa(newsrecord.ItemID))
 		if err != nil {
-			logInfo(err)
+			logInfo("updateCharacter(): unable to get item by its ID =", newsrecord.ItemID, ":", err)
 			return newsrecord
 		}
 		newsrecord.ItemInfo = *item
