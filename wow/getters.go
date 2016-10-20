@@ -35,8 +35,8 @@ func getGuildNews(realmName, guildName string) (*NewsList, error) {
 	}
 	done := make(chan NewsList, 1)
 	go gNews.refillNews(done)
-	gNews = <-done
-	gNews = gNews.SortGuildNews()
+	gn := <-done
+	gNews = gn.SortGuildNews()
 	logInfo("Got updated guild news")
 	return &gNews, nil
 }
@@ -77,9 +77,9 @@ func getGuildMembers(realmName, guildName, option string, params []string) (*Mem
 	}
 	done := make(chan MembersList, 1)
 	go gMembers.refillMembers(option, done)
-	gMembers = <-done
-	gMembers = gMembers.SortGuildMembers(params)
-	logInfo("Got updated guild news")
+	gm := <-done
+	gMembers = gm.SortGuildMembers(params)
+	logInfo("Got sorted guild members")
 	return &gMembers, nil
 }
 
