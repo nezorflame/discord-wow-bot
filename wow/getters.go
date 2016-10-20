@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
-    "strconv"
 	"sync"
 	"time"
 
@@ -81,8 +81,8 @@ func getGuildMembers(realmName, guildName, option string, params []string) (*Mem
 		logInfo("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
 		giJSON, err := getJSONFromGuildInfo(&gInfo)
-        err = db.Put("Main", consts.GuildMembersBucketKey, giJSON)
-        logOnErr(err)
+		err = db.Put("Main", consts.GuildMembersBucketKey, giJSON)
+		logOnErr(err)
 	} else {
 		logInfo("Got", len(gMembers), "guild members from cache")
 	}
@@ -149,7 +149,9 @@ func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
 			defer wg.Done()
 			gMember := updateCharacter(m, t)
 			guildMembers = append(guildMembers, gMember)
-			time.Sleep(100 * time.Millisecond)
+			if len(guildMembers) % 10 == 0 {
+				time.Sleep(1 * time.Second)
+			}
 		}(m)
 	}
 	logInfo("Members refilled with", t)
@@ -184,7 +186,7 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 		profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
 	}
 	if err != nil {
-		logInfo("updateCharacter(): unable to get", t + ":", err)
+		logInfo("updateCharacter(): unable to get", t+":", err)
 		return member
 	}
 	switch t {
@@ -287,7 +289,6 @@ func getArmoryLink(rSlug, cName *string) (string, error) {
 	var jsonStr = []byte(link)
 	req, err := http.NewRequest("POST", apiLink, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
-
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	panicOnErr(err)
@@ -299,7 +300,6 @@ func getArmoryLink(rSlug, cName *string) (string, error) {
 		logInfo(err)
 		return "", err
 	}
-
 	return *shortLink, nil
 }
 
@@ -328,20 +328,20 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
 
 func getItemByID(itemID string) (item *Item, err error) {
 	itemJSON := db.Get("Items", itemID)
-    if itemJSON == nil {
-        apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, itemID, locale, wowAPIToken)
-        r, err := http.Get(apiLink)
-        panicOnErr(err)
-        if strings.Contains(r.Status, "404") {
-            return new(Item), errors.New(r.Status)
-        }
-        defer r.Body.Close()
-        body, err := ioutil.ReadAll(r.Body)
-        panicOnErr(err)
+	if itemJSON == nil {
+		apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, itemID, locale, wowAPIToken)
+		r, err := http.Get(apiLink)
+		panicOnErr(err)
+		if strings.Contains(r.Status, "404") {
+			return new(Item), errors.New(r.Status)
+		}
+		defer r.Body.Close()
+		body, err := ioutil.ReadAll(r.Body)
+		panicOnErr(err)
 		itemJSON = []byte(body)
-        err = db.Put("Items", itemID, itemJSON)
-        panicOnErr(err)
-    }
+		err = db.Put("Items", itemID, itemJSON)
+		panicOnErr(err)
+	}
 	item, err = getItemFromJSON(itemJSON)
 	if err != nil {
 		logInfo(err)

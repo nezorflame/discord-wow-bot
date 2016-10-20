@@ -14,8 +14,8 @@ const (
 	RealmHasQueue   = "На сервере очередь, готовься идти делать чай :pensive:"
 	RealmHasNoQueue = "Очередей нет, можно заходить! :smile:"
 
-	GMCAcquired = "Получаю список согильдейцев из Армори...подожди секунд 5 :smile:"
-	GPCAcquired = "Получаю список профессий в гильдии из Армори...подожди секунд 5 :smile:"
+	GMCAcquired = "Получаю список согильдейцев из Армори...секундочку :smile:"
+	GPCAcquired = "Получаю список профессий в гильдии из Армори...секундочку :smile:"
 
 	Boobies  = "Покажи фанатам сиськи! :smile:\nhttps://giphy.com/gifs/gene-wilder-z88aYORoi8fQc"
 	JohnCena = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
