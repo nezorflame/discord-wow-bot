@@ -29,12 +29,8 @@ func Init() {
 	// Open the my.db data file in your current directory.
 	// It will be created if it doesn't exist.
     var err error
-    now := time.Now()
-    before := now.AddDate(0, 0, -1)
-    nYear, nMonth, nDay := now.Date()
-    yYear, yMonth, yDay := before.Date()
-    today = fmt.Sprintf("%d/%d/%d", nYear, nMonth, nDay)
-    yesterday := fmt.Sprintf("%d/%d/%d", yYear, yMonth, yDay)
+    today = getStringDateFromToday(0)
+    yesterday := getStringDateFromToday(-1)
     log.Printf("Initiating bolt connection... Current bucket name is %s\n", today)
 	db, err = bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 	panicOnError(err)
@@ -48,6 +44,17 @@ func Init() {
 
 func Close() {
     db.Close()
+}
+
+func Watcher() {
+    for {
+        yesterday := getStringDateFromToday(-1)
+        if today == yesterday {
+            Close()
+            Init()
+        }
+        time.Sleep(5 * time.Minute)
+    }
 }
 
 func Get(bucketName, key string) (value []byte) {
@@ -90,4 +97,10 @@ func deleteBucket(name string) (err error) {
         return err
     })
     return
+}
+
+func getStringDateFromToday(diff int) string {
+    dest := time.Now().AddDate(0, 0, diff)
+    year, month, day := dest.Date()
+    return fmt.Sprintf("%d/%d/%d", year, month, day)
 }

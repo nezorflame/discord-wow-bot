@@ -43,6 +43,7 @@ func main() {
 	logInfo("Initiating db...")
 	db.Init()
 	defer db.Close()
+	go db.Watcher()
 	logInfo("Starting bot...")
 	bot.Start()
 	logInfo("Bot is now running.")
