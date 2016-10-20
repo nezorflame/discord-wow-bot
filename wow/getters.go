@@ -169,12 +169,12 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
 	if err != nil {
 		logInfo("updateCharacter(): unable to get realm slug:", err)
-		return m
+		return member
 	}
 	shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
 	if err != nil {
 		logInfo("updateCharacter(): unable to get Armory link:", err)
-		return m
+		return member
 	}
 	m.Member.Link = shortLink
 	switch t {
@@ -185,7 +185,7 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 	}
 	if err != nil {
 		logInfo("updateCharacter(): unable to get", t + ":", err)
-		return m
+		return member
 	}
 	switch t {
 	case "Items":
