@@ -20,9 +20,7 @@ func (nl *NewsList) SortGuildNews() (NewsList) {
                 keys = append(keys, k)
             }
         }
-        logInfo(n)
     }
-    logInfo("Sorting...")
     sort.Float64s(keys)
     for _, k := range keys {
         for _, n := range gNewsTimeMap[k] {
