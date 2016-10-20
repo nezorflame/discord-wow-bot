@@ -70,22 +70,34 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 }
 
 func getGuildMembers(realmName, guildName, option string, params []string) (*MembersList, error) {
-	gMembers, err := getGuildMembersList(&realmName, &guildName)
+	gInfo, cached, err := getGuildInfo(&realmName, &guildName)
 	if err != nil {
 		return nil, err
 	}
-	logInfo("Got", len(gMembers), "guild members in total. Filling the gaps...")
-	gMembers = gMembers.refillMembers(option)
+	gMembers := gInfo.GuildMembersList
+	if !cached {
+		logInfo("Got", len(gMembers), "guild members from API. Filling the gaps...")
+		gMembers = gMembers.refillMembers(option)
+		logInfo("Saving guild members into cache...")
+		gInfo.GuildMembersList = gMembers
+		giJSON, err := getJSONFromGuildInfo(&gInfo)
+        err = db.Put("Main", consts.GuildMembersBucketKey, giJSON)
+        logOnErr(err)
+	} else {
+		logInfo("Got", len(gMembers), "guild members from cache")
+	}
 	gMembers = gMembers.SortGuildMembers(params)
-	logInfo("Got sorted guild members")
+	logInfo("Sorted guild members")
 	return &gMembers, nil
 }
 
-func getGuildMembersList(guildRealm, guildName *string) (ml MembersList, err error) {
+func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, err error) {
 	logInfo("getting main guild members...")
+	cached = true
 	membersJSON := db.Get("Main", consts.GuildMembersBucketKey)
 	if membersJSON == nil {
 		logInfo("No cache is present, getting from API...")
+		cached = false
 		apiLink := fmt.Sprintf(consts.WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1),
 			strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
 		r, err := http.Get(apiLink)
@@ -94,15 +106,13 @@ func getGuildMembersList(guildRealm, guildName *string) (ml MembersList, err err
 		body, err := ioutil.ReadAll(r.Body)
 		panicOnErr(err)
 		membersJSON = []byte(body)
-        err = db.Put("Main", consts.GuildMembersBucketKey, membersJSON)
-        logOnErr(err)
 	}
-	gInfo, err := getGuildInfoFromJSON(membersJSON)
+	gi, err := getGuildInfoFromJSON(membersJSON)
 	if err != nil {
 		return
 	}
-	ml = gInfo.GuildMembersList
-	err = ml.getAdditionalMembers()
+	err = gi.GuildMembersList.getAdditionalMembers()
+	gInfo = *gi
 	return
 }
 

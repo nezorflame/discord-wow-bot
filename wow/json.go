@@ -16,6 +16,12 @@ func getGuildInfoFromJSON(body []byte) (*GuildInfo, error) {
     return gi, err
 }
 
+func getJSONFromGuildInfo(gi *GuildInfo) ([]byte, error) {
+    body, err := json.Marshal(&gi)
+    panicOnErr(err)
+    return body, err
+}
+
 func getCharacterFromJSON(body []byte) (*Character, error) {
     var c = new(Character)
     err := json.Unmarshal(body, &c)
