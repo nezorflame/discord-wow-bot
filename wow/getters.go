@@ -204,7 +204,7 @@ func (nl *NewsList) refillNews() (guildNews NewsList) {
 			defer wg.Done()
 			news := updateNews(n)
 			guildNews = append(guildNews, news)
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 		}(n)
 	}
 	logInfo("News refilled")
