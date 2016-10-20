@@ -34,9 +34,7 @@ func getGuildNews(realmName, guildName string) (*NewsList, error) {
 	if err != nil {
 		return nil, err
 	}
-	done := make(chan NewsList, 1)
-	go gNews.refillNews(done)
-	gNews = <-done
+	gNews = gNews.refillNews()
 	gNews = gNews.SortGuildNews()
 	logInfo("Got updated guild news")
 	return &gNews, nil
@@ -56,7 +54,7 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		return
 	}
 	now := time.Now()
-	before := now.AddDate(0, 0, -3)
+	before := now.Add(time.Duration(-5 * time.Minute))
 	// Fill string valuables
 	gInfo.Side = factions[gInfo.SideInt]
 	for _, n := range gInfo.GuildNewsList {
@@ -137,11 +135,11 @@ func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
 	var wg sync.WaitGroup
 	wg.Add(len(*ml))
 	for _, m := range *ml {
-		go func(m *GuildMember) {
+		go func(m GuildMember) {
 			defer wg.Done()
-			gMember := updateCharacter(*m, t)
+			gMember := updateCharacter(m, t)
 			guildMembers = append(guildMembers, gMember)
-		}(&m)
+		}(m)
 	}
 	logInfo("Members refilled with", t)
 	wg.Wait()
@@ -191,48 +189,31 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 	return
 }
 
-func (nl *NewsList) refillNews(done chan NewsList) {
-	var guildNews NewsList
+func (nl *NewsList) refillNews() (guildNews NewsList) {
+	var wg sync.WaitGroup
+	wg.Add(len(*nl))
 	for _, n := range *nl {
-		if n.Type == "itemLoot" {
-			guildNews = append(guildNews, n)
-		}
-	}
-	l := len(guildNews)
-	c := make(chan News, l)
-	for _, n := range guildNews {
-		go updateNews(n, c)
-	}
-	guildNews = make(NewsList, 0)
-	for i := 0; i < l; i++ {
-		guildNews = append(guildNews, <-c)
+		go func(n News) {
+			defer wg.Done()
+			news := updateNews(n)
+			guildNews = append(guildNews, news)
+		}(n)
 	}
 	logInfo("News refilled")
-	done <- guildNews
+	wg.Wait()
+	return
 }
 
-func fillNews(nl NewsList) <-chan News {
-	out := make(chan News)
-    go func() {
-        for _, n := range nl {
-            out <- n
-        }
-        close(out)
-    }()
-    return out
-}
-
-func updateNews(newsrecord News, c chan News) {
+func updateNews(newsrecord News) (news News) {
 	if newsrecord.Type == "itemLoot" {
 		item, err := getItemByID(strconv.Itoa(newsrecord.ItemID))
 		if err != nil {
-			c <- newsrecord
 			logInfo(err)
-			return
+			return newsrecord
 		}
 		newsrecord.ItemInfo = *item
 	}
-	c <- newsrecord
+	return newsrecord
 }
 
 func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {
