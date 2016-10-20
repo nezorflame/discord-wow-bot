@@ -38,13 +38,16 @@ func Init() {
 	db, err := bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 	defer db.Close()
 	panicOnError(err)
+    log.Printf("DB opened succesfully")
     err = createBucket("Items")
     panicOnError(err)
+    log.Printf("Items bucket created")
     err = createBucket(today)
     panicOnError(err)
+    log.Printf("Today's bucket created")
     err = deleteBucket(yesterday)
     logOnError(err)
-    // fillData()
+    log.Printf("Yesterday's bucket deleted")
 }
 
 func Get(bucketName, key string) (value []byte) {
