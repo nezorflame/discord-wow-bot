@@ -26,6 +26,7 @@ _testmain.go
 # vscode Folders
 .vscode/
 
-# ignore binaries
+# ignore binaries and db
 discord-wow-bot
 debug
+my.db

@@ -136,15 +136,72 @@ func (ml *MembersList) getAdditionalMembers() error {
 
 func (ml *MembersList) refillMembers(t string, done chan MembersList) {
 	var guildMembers MembersList
-	c := make(chan GuildMember, len(*ml))
-	for _, m := range *ml {
-		go updateCharacter(&m, t, c)
-	}
-	for i := 0; i < len(*ml); i++ {
-		guildMembers = append(guildMembers, <-c)
+	// c := make(chan GuildMember, len(*ml))
+	// for _, m := range *ml {
+	// 	go updateCharacter(&m, t, c)
+	// }
+	c := fillMembers(t, *ml)
+	for m := range c {
+		guildMembers = append(guildMembers, m)
 	}
 	logInfo("Members refilled with", t)
 	done <- guildMembers
+}
+
+func fillMembers(t string, ml MembersList) <-chan GuildMember {
+	out := make(chan GuildMember)
+	for _, m := range ml {
+    	go func() {
+            out <- updateCharacter(&m, t)
+    	}()
+	}
+	defer close(out)
+    return out
+}
+
+func updateCharacter(member *GuildMember, t string) GuildMember {
+	var newMember = new(GuildMember)
+	var items *Items
+	var profs *Professions
+	var err error
+	m := *member
+	m.Member.Class = classes[m.Member.ClassInt]
+	m.Member.Gender = genders[m.Member.GenderInt]
+	m.Member.Race = races[m.Member.RaceInt]
+	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
+	if err != nil {
+		logInfo(err)
+		return m
+	}
+	shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
+	if err != nil {
+		logInfo(err)
+		return m
+	}
+	m.Member.Link = shortLink
+	switch t {
+	case "Items":
+		items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
+	case "Profs":
+		profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
+	}
+	if err != nil {
+		logInfo(err)
+		return m
+	}
+	if err != nil {
+		logInfo(err)
+		return m
+	}
+	newMember.Member = m.Member
+	switch t {
+	case "Items":
+		newMember.Member.Items = *items
+	case "Profs":
+		newMember.Member.Professions = *profs
+	}
+	newMember.Rank = m.Rank
+	return *newMember
 }
 
 func (nl *NewsList) refillNews(done chan NewsList) {
@@ -167,53 +224,15 @@ func (nl *NewsList) refillNews(done chan NewsList) {
 	done <- guildNews
 }
 
-func updateCharacter(member *GuildMember, t string, c chan GuildMember) {
-	var newMember = new(GuildMember)
-	var items *Items
-	var profs *Professions
-	var err error
-	m := *member
-	m.Member.Class = classes[m.Member.ClassInt]
-	m.Member.Gender = genders[m.Member.GenderInt]
-	m.Member.Race = races[m.Member.RaceInt]
-	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
-	if err != nil {
-		c <- m
-		logInfo(err)
-		return
-	}
-	shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
-	if err != nil {
-		c <- m
-		logInfo(err)
-		return
-	}
-	m.Member.Link = shortLink
-	switch t {
-	case "Items":
-		items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
-	case "Profs":
-		profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
-	}
-	if err != nil {
-		c <- m
-		logInfo(err)
-		return
-	}
-	if err != nil {
-		c <- m
-		logInfo(err)
-		return
-	}
-	newMember.Member = m.Member
-	switch t {
-	case "Items":
-		newMember.Member.Items = *items
-	case "Profs":
-		newMember.Member.Professions = *profs
-	}
-	newMember.Rank = m.Rank
-	c <- *newMember
+func fillNews(nl NewsList) <-chan News {
+	out := make(chan News)
+    go func() {
+        for _, n := range nl {
+            out <- n
+        }
+        close(out)
+    }()
+    return out
 }
 
 func updateNews(newsrecord News, c chan News) {
