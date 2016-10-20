@@ -192,7 +192,7 @@ func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
 
 // GetGuildMembers - function for receiving a list of guild members
 func GetGuildMembers(realmName, guildName string, params []string) ([]map[string]string, error) {
-	gMembers, err := getGuildMembers(realmName, guildName, "Items", params)
+	gMembers, err := getGuildMembers(realmName, guildName, params)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func GetGuildMembers(realmName, guildName string, params []string) ([]map[string
 // GetGuildProfs - function for receiving a list of guild professions
 func GetGuildProfs(realmName, guildName string, param string) ([]map[string]string, error) {
 	params := []string{"name=asc"}
-	gMembers, err := getGuildMembers(realmName, guildName, "Profs", params)
+	gMembers, err := getGuildMembers(realmName, guildName, params)
 	if err != nil {
 		return nil, err
 	}

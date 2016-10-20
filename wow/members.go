@@ -10,7 +10,7 @@ import (
 	"github.com/nezorflame/discord-wow-bot/net"
 )
 
-func getGuildMembers(realmName, guildName, option string, params []string) (*MembersList, error) {
+func getGuildMembers(realmName, guildName string, params []string) (*MembersList, error) {
 	gInfo, cached, err := getGuildInfo(&realmName, &guildName)
 	if err != nil {
 		return nil, err
@@ -18,7 +18,7 @@ func getGuildMembers(realmName, guildName, option string, params []string) (*Mem
 	gMembers := gInfo.GuildMembersList
 	if !cached {
 		logInfo("Got", len(gMembers), "guild members from API. Filling the gaps...")
-		gMembers = gMembers.refillMembers(option)
+		gMembers = gMembers.refillMembers()
 		logInfo("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
 		giJSON, err := getJSONFromGuildInfo(&gInfo)
@@ -81,22 +81,22 @@ func (ml *MembersList) getAdditionalMembers() error {
 	return nil
 }
 
-func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
+func (ml *MembersList) refillMembers() (guildMembers MembersList) {
 	var wg sync.WaitGroup
 	wg.Add(len(*ml))
 	for _, m := range *ml {
 		go func(m GuildMember) {
 			defer wg.Done()
-			gMember := updateCharacter(m, t)
+			gMember := updateCharacter(m)
 			guildMembers = append(guildMembers, gMember)
 		}(m)
 	}
-	logInfo("Members refilled with", t)
+	logInfo("Members refilled")
 	wg.Wait()
 	return
 }
 
-func updateCharacter(member GuildMember, t string) (m GuildMember) {
+func updateCharacter(member GuildMember) (m GuildMember) {
 	var items *Items
 	var profs *Professions
 	var err error
@@ -116,21 +116,17 @@ func updateCharacter(member GuildMember, t string) (m GuildMember) {
 		return member
 	}
 	m.Member.Link = shortLink
-	switch t {
-	case "Items":
-		items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
-	case "Profs":
-		profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
-	}
+	items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
 	if err != nil {
-		logInfo("updateCharacter(): unable to get", t+":", err)
+		logInfo("updateCharacter(): unable to get items:", err)
 		return member
 	}
-	switch t {
-	case "Items":
-		m.Member.Items = *items
-	case "Profs":
-		m.Member.Professions = *profs
+	m.Member.Items = *items
+	profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
+	if err != nil {
+		logInfo("updateCharacter(): unable to get profs:", err)
+		return member
 	}
+	m.Member.Professions = *profs
 	return
 }
