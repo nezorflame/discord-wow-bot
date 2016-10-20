@@ -88,6 +88,8 @@ type Item struct {
     Name                string          `json:"name"`
     Quality             int             `json:"quality"`
     ItemLevel           int             `json:"itemLevel"`
+    Equippable          bool            `json:"equippable"`
+    ReqLevel            int             `json:"requiredLevel"`
     Link                string
 }
 

@@ -179,10 +179,11 @@ func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
 		return nil, err
 	}
 	for _, n := range *gNews {
-		isLegendary := n.ItemInfo.Quality == 5
+		item := n.ItemInfo
+		isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 895 && item.ReqLevel == 110
 		if isLegendary {
-			logInfo(n.EventTime, n.Character, n.ItemInfo.Name, n.ItemID)
-			message := fmt.Sprintf("Ура! %s слутал легендарку **%s**! Поздравляем! :smile: \n%s", n.Character, n.ItemInfo.Name, n.ItemInfo.Link)
+			logInfo(n.EventTime, n.Character, item.Name, item.ID)
+			message := fmt.Sprintf("Ура! %s слутал легендарку **%s**! Поздравляем! :smile: \n%s", n.Character, item.Name, item.Link)
 			legendaries = append(legendaries, message)
 		}
 	}
