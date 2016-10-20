@@ -149,6 +149,7 @@ func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
 			defer wg.Done()
 			gMember := updateCharacter(m, t)
 			guildMembers = append(guildMembers, gMember)
+			time.Sleep(50 * time.Millisecond)
 		}(m)
 	}
 	logInfo("Members refilled with", t)
@@ -203,6 +204,7 @@ func (nl *NewsList) refillNews() (guildNews NewsList) {
 			defer wg.Done()
 			news := updateNews(n)
 			guildNews = append(guildNews, news)
+			time.Sleep(50 * time.Millisecond)
 		}(n)
 	}
 	logInfo("News refilled")
