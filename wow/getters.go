@@ -103,13 +103,13 @@ func getGuildMembersList(guildRealm, guildName *string) (ml MembersList, err err
 	if err != nil {
 		return
 	}
-	// Fill string valuables
-	gInfo.Side = factions[gInfo.SideInt]
-	err = gInfo.GuildMembersList.getAdditionalMembers()
+	ml = gInfo.GuildMembersList
+	logInfo("Got", len(ml), "main members...")
+	err = ml.getAdditionalMembers()
 	if err != nil {
 		return
 	}
-	ml = gInfo.GuildMembersList
+	logInfo("Got", len(ml), "members in total")
 	return
 }
 
