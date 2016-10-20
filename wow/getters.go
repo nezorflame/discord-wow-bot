@@ -75,9 +75,11 @@ func getGuildMembers(realmName, guildName, option string, params []string) (*Mem
 	if err != nil {
 		return nil, err
 	}
+	logInfo("Refilled", len(gMembers), "guild members")
 	done := make(chan MembersList, 1)
 	go gMembers.refillMembers(option, done)
 	gm := <-done
+	logInfo("Refilled", len(gm), "guild members")
 	gMembers = gm.SortGuildMembers(params)
 	logInfo("Got sorted guild members")
 	return &gMembers, nil
@@ -106,10 +108,6 @@ func getGuildMembersList(guildRealm, guildName *string) (ml MembersList, err err
 	ml = gInfo.GuildMembersList
 	logInfo("Got", len(ml), "main members...")
 	err = ml.getAdditionalMembers()
-	if err != nil {
-		return
-	}
-	logInfo("Got", len(ml), "members in total")
 	return
 }
 
