@@ -62,10 +62,10 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		eventTime := time.Unix(n.Timestamp/1000, 0)
 		utc, err := time.LoadLocation(consts.Timezone)
 		panicOnErr(err)
+		n.EventTime = eventTime.In(utc)
 		if inTimeSpan(before, now, eventTime) {
 			gNews = append(gNews, n)
 		}
-		n.EventTime = eventTime.In(utc)
 	}
 	return
 }

@@ -37,7 +37,7 @@ func (nl *NewsList) SortGuildNews() (NewsList) {
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
     logInfo("sorting guild members, count =", len(*ml))
     var gMembers MembersList
-    gMembers = sortGuildMembersByString(ml, "name", "asc")
+    gMembers = sortGuildMembersByString(*ml, "name", "asc")
     logInfo("presorted guild members, count =", len(gMembers))
     length := len(gMembers)
     for _, p := range params {
@@ -58,10 +58,10 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
                 sOrder := s[1]
                 switch pName {
                     case "name", "class", "spec":
-                        gMembers = sortGuildMembersByString(&gMembers, pName, sOrder)
+                        gMembers = sortGuildMembersByString(gMembers, pName, sOrder)
                         logInfo("sorted guild members, count =", len(gMembers))
                     case "level", "ilvl":
-                        gMembers = sortGuildMembersByInt(&gMembers, pName, sOrder)
+                        gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
                         logInfo("sorted guild members, count =", len(gMembers))
                     default:
                         logInfo("Unknown parameter", pName, "so skipping...")
@@ -69,39 +69,39 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
         }
     }
     if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
-        gMembers = sortGuildMembersByInt(&gMembers, "level", "desc")
+        gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
         logInfo("sorted guild members, count =", len(gMembers))
-        gMembers = sortGuildMembersByInt(&gMembers, "ilvl", "desc")
+        gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
         logInfo("sorted guild members, count =", len(gMembers))
         logInfo("No sorting params, used only default sort order...")
     }
     return gMembers[:length]
 }
 
-func sortGuildMembersByString(ml *MembersList, key, order string) MembersList {
+func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
     logInfo("sorting guild members by string:", key, "and order:", order)
     gMembersMap := make(map[string]MembersList)
     var sortedMembers MembersList
     var keys []string
     ascOrder := true
-    for _, m := range *ml {
-        var k string
+    for _, m := range ml {
+        var mKey string
         switch key {
             case "name":
-                k = m.Member.Name
+                mKey = m.Member.Name
             case "class":
-                k = m.Member.Class
+                mKey = m.Member.Class
             case "spec":
-                k = m.Member.Spec.Name
+                mKey = m.Member.Spec.Name
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
-                return *ml
+                return ml
         }
-        members := gMembersMap[k]
+        members := gMembersMap[mKey]
         if !members.checkMSliceForMember(m) {
-            gMembersMap[k] = append(gMembersMap[k], m)
-            if !checkStrSliceForValue(keys, k) {
-                keys = append(keys, k)
+            gMembersMap[mKey] = append(gMembersMap[mKey], m)
+            if !checkStrSliceForValue(keys, mKey) {
+                keys = append(keys, mKey)
             }
         }
     }
@@ -122,13 +122,13 @@ func sortGuildMembersByString(ml *MembersList, key, order string) MembersList {
     return sortedMembers
 }
 
-func sortGuildMembersByInt(ml *MembersList, key, order string) MembersList {
+func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
     logInfo("sorting guild members by int:", key, "and order:", order)
     gMembersMap := make(map[int]MembersList)
     var sortedMembers MembersList
     var keys []int
     ascOrder := true
-    for _, m := range *ml {
+    for _, m := range ml {
         var k int
         switch key {
             case "level":
@@ -137,7 +137,7 @@ func sortGuildMembersByInt(ml *MembersList, key, order string) MembersList {
                 k = m.Member.Items.AvgItemLvlEq
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
-                return *ml
+                return ml
         }
         members := gMembersMap[k]
         if !members.checkMSliceForMember(m) {
