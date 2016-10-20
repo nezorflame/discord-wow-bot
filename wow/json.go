@@ -33,6 +33,7 @@ func getCharacterFromJSON(body []byte) (*Character, error) {
 
 func getItemFromJSON(body []byte) (*Item, error) {
     var i = new(Item)
+    logInfo(string(body))
     err := json.Unmarshal(body, &i)
     panicOnErr(err)
     return i, err
