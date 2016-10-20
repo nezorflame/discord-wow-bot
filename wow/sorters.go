@@ -25,7 +25,7 @@ func (nl *NewsList) SortGuildNews() (NewsList) {
     for _, k := range keys {
         for _, n := range gNewsTimeMap[k] {
             *sortedNews = append(*sortedNews, n)
-            logInfo(n)
+            logInfo(n.Character, n.ItemInfo.Name, n.ItemInfo.Link, n.ItemInfo.Quality)
         }
     }
     return *sortedNews

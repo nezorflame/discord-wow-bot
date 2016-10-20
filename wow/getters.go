@@ -110,7 +110,7 @@ func getProfShortLink(rSlug, cName, pName *string) (string, error) {
 func getItemByID(itemID string) (item *Item, err error) {
 	itemJSON := db.Get("Items", itemID)
 	item = new(Item)
-	flag := false
+	cached := true
 	if itemJSON == nil {
 		apiLink := fmt.Sprintf(consts.WoWAPIItemLink, region, itemID, locale, wowAPIToken)
 		itemJSON, err = net.GetJSONResponse(apiLink)
@@ -123,11 +123,10 @@ func getItemByID(itemID string) (item *Item, err error) {
 			logInfo(err)
 			return
 		}
-		flag = true
+		cached = false
 	}
-	logInfo(itemID, flag)
 	if itemJSON == nil {
-		err = errors.New("Null JSON! itemID = " + itemID + ", flag = " + strconv.FormatBool(flag))
+		err = errors.New("Null JSON! itemID = " + itemID + ", cached = " + strconv.FormatBool(cached))
 		return
 	}
 	err = item.getItemFromJSON(&itemJSON)

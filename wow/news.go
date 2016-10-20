@@ -36,7 +36,7 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		return
 	}
 	now := time.Now()
-	before := now.Add(time.Duration(-150 * time.Minute))
+	before := now.Add(time.Duration(-5 * time.Minute))
 	// Fill string valuables
 	gInfo.Side = factions[gInfo.SideInt]
 	for _, n := range gInfo.GuildNewsList {

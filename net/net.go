@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"log"
 )
 
 func GetJSONResponse(url string) ([]byte, error) {
@@ -27,7 +26,6 @@ func GetJSONResponse(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println(string(body))
 	return body, nil
 }
 
