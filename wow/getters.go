@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
     "strconv"
+	"sync"
 	"time"
 
 	"github.com/nezorflame/discord-wow-bot/consts"
@@ -76,9 +77,7 @@ func getGuildMembers(realmName, guildName, option string, params []string) (*Mem
 		return nil, err
 	}
 	logInfo("Got", len(gMembers), "guild members in total. Filling the gaps...")
-	done := make(chan MembersList, 1)
-	go gMembers.refillMembers(option, done)
-	gMembers = <-done
+	gMembers = gMembers.refillMembers(option)
 	gMembers = gMembers.SortGuildMembers(params)
 	logInfo("Got sorted guild members")
 	return &gMembers, nil
@@ -134,44 +133,27 @@ func (ml *MembersList) getAdditionalMembers() error {
 	return nil
 }
 
-func (ml *MembersList) refillMembers(t string, done chan MembersList) {
-	var guildMembers MembersList
-	// c := make(chan GuildMember, len(*ml))
-	// for _, m := range *ml {
-	// 	go updateCharacter(&m, t, c)
-	// }
-	c := fillMembers(t, *ml)
-	for m := range c {
-		guildMembers = append(guildMembers, m)
+func (ml *MembersList) refillMembers(t string) (guildMembers MembersList) {
+	var wg sync.WaitGroup
+	wg.Add(len(*ml))
+	for _, m := range *ml {
+		go func(m *GuildMember) {
+			defer wg.Done()
+			gMember := updateCharacter(*m, t)
+			guildMembers = append(guildMembers, gMember)
+		}(&m)
 	}
 	logInfo("Members refilled with", t)
-	done <- guildMembers
+	wg.Wait()
+	return
 }
 
-func fillMembers(t string, ml MembersList) <-chan GuildMember {
-	out := make(chan GuildMember)
-	var count int
-	for _, m := range ml {
-    	go func() {
-            out <- updateCharacter(&m, t)
-			count++
-    	}()
-	}
-	for {
-		if count == len(ml) {
-			close(out)
-			break
-		}
-	}
-    return out
-}
-
-func updateCharacter(member *GuildMember, t string) GuildMember {
-	var newMember = new(GuildMember)
+func updateCharacter(member GuildMember, t string) (m GuildMember) {
 	var items *Items
 	var profs *Professions
 	var err error
-	m := *member
+	m.Member = member.Member
+	m.Rank = member.Rank
 	m.Member.Class = classes[m.Member.ClassInt]
 	m.Member.Gender = genders[m.Member.GenderInt]
 	m.Member.Race = races[m.Member.RaceInt]
@@ -200,15 +182,13 @@ func updateCharacter(member *GuildMember, t string) GuildMember {
 		logInfo(err)
 		return m
 	}
-	newMember.Member = m.Member
 	switch t {
 	case "Items":
-		newMember.Member.Items = *items
+		m.Member.Items = *items
 	case "Profs":
-		newMember.Member.Professions = *profs
+		m.Member.Professions = *profs
 	}
-	newMember.Rank = m.Rank
-	return *newMember
+	return
 }
 
 func (nl *NewsList) refillNews(done chan NewsList) {
