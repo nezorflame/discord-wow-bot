@@ -37,7 +37,7 @@ func (nl *NewsList) SortGuildNews() (NewsList) {
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
     logInfo("sorting guild members...")
     var gMembers MembersList
-    gMembers = sortGuildMembersByString(*ml, "name", "asc")
+    gMembers = sortGuildMembersByString(ml, "name", "asc")
     length := len(gMembers)
     for _, p := range params {
         switch p {
@@ -57,29 +57,29 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
                 sOrder := s[1]
                 switch pName {
                     case "name", "class", "spec":
-                        gMembers = sortGuildMembersByString(gMembers, pName, sOrder)
+                        gMembers = sortGuildMembersByString(&gMembers, pName, sOrder)
                     case "level", "ilvl":
-                        gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
+                        gMembers = sortGuildMembersByInt(&gMembers, pName, sOrder)
                     default:
                         logInfo("Unknown parameter", pName, "so skipping...")
                 }
         }
     }
     if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
-        gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
-        gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
+        gMembers = sortGuildMembersByInt(&gMembers, "level", "desc")
+        gMembers = sortGuildMembersByInt(&gMembers, "ilvl", "desc")
         logInfo("No sorting params, using default sort order...")
     }
     return gMembers[:length]
 }
 
-func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
+func sortGuildMembersByString(ml *MembersList, key, order string) MembersList {
     logInfo("sorting guild members by string:", key, "and order:", order)
     gMembersMap := make(map[string]MembersList)
-    sortedMembers := new(MembersList)
+    var sortedMembers MembersList
     var keys []string
     ascOrder := true
-    for _, m := range ml {
+    for _, m := range *ml {
         var k string
         switch key {
             case "name":
@@ -90,7 +90,7 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
                 k = m.Member.Spec.Name
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
-                return ml
+                return *ml
         }
         members := gMembersMap[k]
         if !members.checkMSliceForMember(m) {
@@ -110,21 +110,21 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
     }
     for _, k := range keys {
         for _, member := range gMembersMap[k] {
-            *sortedMembers = append(*sortedMembers, member)
+            sortedMembers = append(sortedMembers, member)
         }
     }
     gMembersMap = nil
     keys = nil
-    return *sortedMembers
+    return sortedMembers
 }
 
-func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
+func sortGuildMembersByInt(ml *MembersList, key, order string) MembersList {
     logInfo("sorting guild members by int:", key, "and order:", order)
     gMembersMap := make(map[int]MembersList)
-    sortedMembers := new(MembersList)
+    var sortedMembers MembersList
     var keys []int
     ascOrder := true
-    for _, m := range ml {
+    for _, m := range *ml {
         var k int
         switch key {
             case "level":
@@ -133,7 +133,7 @@ func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
                 k = m.Member.Items.AvgItemLvlEq
             default:
                 logInfo("Unknown key: " + key + ". Aborting...")
-                return ml
+                return *ml
         }
         members := gMembersMap[k]
         if !members.checkMSliceForMember(m) {
@@ -153,10 +153,10 @@ func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
     }
     for _, k := range keys {
         for _, member := range gMembersMap[k] {
-            *sortedMembers = append(*sortedMembers, member)
+            sortedMembers = append(sortedMembers, member)
         }
     }
-    return *sortedMembers
+    return sortedMembers
 }
 
 func (ml *MembersList) checkMSliceForMember(member GuildMember) bool {
