@@ -1,11 +1,8 @@
 package wow
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -124,7 +121,7 @@ func (ml *MembersList) getAdditionalMembers() error {
 				strings.Replace(guild, " ", "%20", -1), locale, wowAPIToken)
 			respJSON, err := net.GetJSONResponse(apiLink)
 			if err != nil {
-				logOnErr(err)	
+				logOnErr(err)
 				return err
 			}
 			addGInfo, err := getGuildInfoFromJSON(respJSON)
