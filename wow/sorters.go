@@ -35,7 +35,7 @@ func (nl *NewsList) SortGuildNews() (NewsList) {
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
-    logInfo("sorting guild members...")
+    logInfo("sorting guild members, count =", len(*ml))
     var gMembers MembersList
     gMembers = sortGuildMembersByString(ml, "name", "asc")
     logInfo("presorted guild members, count =", len(gMembers))
@@ -113,13 +113,12 @@ func sortGuildMembersByString(ml *MembersList, key, order string) MembersList {
     } else {
         sort.Sort(sort.Reverse(sort.StringSlice(keys)))
     }
+    logInfo(gMembersMap)
     for _, k := range keys {
         for _, member := range gMembersMap[k] {
             sortedMembers = append(sortedMembers, member)
         }
     }
-    gMembersMap = nil
-    keys = nil
     return sortedMembers
 }
 
