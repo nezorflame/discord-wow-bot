@@ -150,12 +150,19 @@ func (ml *MembersList) refillMembers(t string, done chan MembersList) {
 
 func fillMembers(t string, ml MembersList) <-chan GuildMember {
 	out := make(chan GuildMember)
+	var count int
 	for _, m := range ml {
     	go func() {
             out <- updateCharacter(&m, t)
+			count++
     	}()
 	}
-	defer close(out)
+	for {
+		if count == len(ml) {
+			close(out)
+			break
+		}
+	}
     return out
 }
 
