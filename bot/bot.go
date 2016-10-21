@@ -43,8 +43,9 @@ func Start() {
     logInfo("Opening session...")
 	err = session.Open()
 	logOnErr(err)
-    logInfo("Starting guild watcher...")
-    RunGuildWatcher(session)
+    logInfo("Starting guild watcher and spammer...")
+    go RunGuildWatcher(session)
+    go RunGuildSpammer(session)
 }
 
 func logDebug(v ...interface{}) {
@@ -194,6 +195,17 @@ func RunGuildWatcher(s *discordgo.Session) {
             }
         }
         time.Sleep(5 * time.Minute)
+    }
+}
+
+// RunGuildSpammer - function for SPAMMING :)
+func RunGuildSpammer(s *discordgo.Session) {
+    for {
+        if time.Now().Hour() <= 2 || time.Now().Hour() >= 8 {
+            err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
+            logOnErr(err)
+        }
+        time.Sleep(2 * time.Hour)
     }
 }
 
