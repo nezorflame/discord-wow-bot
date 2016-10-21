@@ -11,10 +11,10 @@ import (
 
 func GetJSONResponse(url string) ([]byte, error) {
 	r, err := http.Get(url)
-	defer r.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer r.Body.Close()
 	if strings.Contains(r.Status, "404") {
 		return nil, errors.New(r.Status)
 	}
@@ -35,10 +35,10 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	r, err := client.Do(req)
-	defer r.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer r.Body.Close()
 	if strings.Contains(r.Status, "404") {
 		return nil, errors.New(r.Status)
 	}
