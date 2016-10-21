@@ -203,8 +203,8 @@ func RunGuildSpammer(s *discordgo.Session) {
     for {
         hour := time.Now().Hour()
         if hour <= 2 || hour >= 8 && hour <= 20 || hour == 23 {
-            err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
-            logOnErr(err)
+            // err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
+            // logOnErr(err)
         }
         time.Sleep(2 * time.Hour)
     }
