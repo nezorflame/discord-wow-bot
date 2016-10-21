@@ -201,7 +201,8 @@ func RunGuildWatcher(s *discordgo.Session) {
 // RunGuildSpammer - function for SPAMMING :)
 func RunGuildSpammer(s *discordgo.Session) {
     for {
-        if time.Now().Hour() <= 2 || time.Now().Hour() >= 8 {
+        hour := time.Now().Hour()
+        if hour <= 2 || hour >= 8 && hour <= 20 || hour == 23 {
             err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
             logOnErr(err)
         }
