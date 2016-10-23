@@ -18,7 +18,7 @@ const (
 	GMCAcquired = "Получаю список согильдейцев из Армори...секундочку :smile:"
 	GPCAcquired = "Получаю список профессий в гильдии из Армори...секундочку :smile:"
 
-	Boobies  = "Покажи фанатам сиськи! :smile:\nhttps://giphy.com/gifs/gene-wilder-z88aYORoi8fQc"
+	Boobies  = "Покажи фанатам сиськи! :smile:\nhttp://www.gifsfor.com/wp-content/uploads/2012/12/Gifs-for-Tumblr-1445.gif"
 	JohnCena = "AND HIS NAME IS JOOOOOOOOOHN CEEEEEEEEEEEENAAAAAAAA! https://youtu.be/QQUgfikLYNI"
 
 	Help = `__**Команды бота:**__
