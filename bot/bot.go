@@ -274,12 +274,6 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Removing bot messages...")
     var err error
 	user := m.Author.Username
-    if m.ChannelID == DiscordMChanID && !containsUser(consts.Admins, m.Author.ID) {
-        logInfo("User is trying to delete all bot messages from main channel! Won't work!")
-        err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
-		logOnErr(err)
-        return
-    }
     am := strings.Replace(m.Message.Content, "!clean", "", 1)
     am = strings.Replace(am, " ", "", -1)
     logInfo("User", user, "- amount to delete:", am)
@@ -295,6 +289,12 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
                 logOnErr(err)
                 return
             }
+    }
+    if m.ChannelID == DiscordMChanID && !containsUser(consts.Admins, m.Author.ID) && (amount > 3 || amount == -1) {
+        logInfo("User is trying to delete all bot messages from main channel! Won't work!")
+        err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
+		logOnErr(err)
+        return
     }
     lastMessageChecked := m.ID
     chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
