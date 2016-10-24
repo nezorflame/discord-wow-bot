@@ -204,9 +204,8 @@ func RunGuildWatcher(s *discordgo.Session) {
 func RunGuildSpammer(s *discordgo.Session) {
 	for {
 		time.Sleep(2 * time.Hour)
-		hour := time.Now().Hour()
-		if hour <= 2 || hour >= 8 && hour <= 20 || hour == 23 {
-			err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
+		if timeIsAllowed() {
+            err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
 			logOnErr(err)
 		}
 	}
@@ -274,9 +273,11 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	user := m.Author.Username
     am := strings.Replace(m.Message.Content, "!clean", "", 1)
     am = strings.Replace(am, " ", "", -1)
-    logInfo("User", user, "- amount for deletion:", am)
+    logInfo("User", user, "- amount to delete:", am)
     var amount int
     switch am {
+        case "all":
+            amount = -1
         case "":
             amount = 1
         default:
@@ -286,11 +287,9 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
                 return
             }
     }
-    logInfo("Amount to delete:", amount)
     lastMessageChecked := m.ID
     chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
-    logInfo("Got messages in channel", m.ChannelID, "-", len(chanMessages))
-    var mesToDelete map[string]string
+    mesToDelete := make(map[string]string)
     for {
         if len(mesToDelete) == amount {
             break
@@ -468,4 +467,33 @@ func compareMesArrays(a, b []*discordgo.Message) bool {
         }
     }
     return true
+}
+
+func timeIsAllowed() bool {
+    location, err := time.LoadLocation(consts.Timezone)
+    panicOnErr(err)
+    now := time.Now().In(location)
+    hour := now.Hour()
+    weekday := now.Weekday()
+    switch weekday {
+        // saturday has raids and is a holiday
+        case time.Saturday:
+            if !(hour >= 2 && hour <= 10 || hour >= 20 && hour <= 23) {
+                logInfo("Saturday spam :) time now:", now.String())
+                return true
+            }
+        // sunday 
+        case time.Sunday:
+            if !(hour >= 2 && hour <= 8) {
+                logInfo("Sunday spam :) time now:", now.String())
+                return true
+            }
+        // work days
+        default:
+            if !(hour >= 2 && hour <= 8 || hour >= 20 && hour <= 23) {
+                logInfo("Workday spam :) time now:", now.String())
+                return true
+            }
+    }
+    return false
 }
