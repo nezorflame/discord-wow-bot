@@ -24,6 +24,9 @@ var (
 	// DiscordMChanID main guild channel ID
 	DiscordMChanID string
 
+    // Users - map of guild members
+    Users map[string]string
+
 	botID   string
 	session *discordgo.Session
 )
@@ -271,6 +274,12 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Removing bot messages...")
     var err error
 	user := m.Author.Username
+    if m.ChannelID == DiscordMChanID && !containsUser(consts.Admins, m.Author.ID) {
+        logInfo("User is trying to delete all bot messages from main channel! Won't work!")
+        err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
+		logOnErr(err)
+        return
+    }
     am := strings.Replace(m.Message.Content, "!clean", "", 1)
     am = strings.Replace(am, " ", "", -1)
     logInfo("User", user, "- amount to delete:", am)
@@ -451,9 +460,9 @@ func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-func containsUser(users []*discordgo.User, userID string) bool {
+func containsUser(users []string, userID string) bool {
 	for _, u := range users {
-		if u.ID == userID {
+		if u == userID {
 			return true
 		}
 	}
