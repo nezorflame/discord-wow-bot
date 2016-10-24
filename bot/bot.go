@@ -290,6 +290,7 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
     }
     logInfo("Amount to delete:", am)
     var count int
+    logInfo("Total messages in channel", m.ChannelID, "-", len(ch.Messages))
     for _, m := range ch.Messages {
         logInfo(m.ID, m.Author.Username, m.Author.ID)
         if m.Author.ID == botID {
