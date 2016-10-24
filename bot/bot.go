@@ -290,7 +290,7 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
     lastMessageChecked := m.ID
     chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
     logInfo("Got messages in channel", m.ChannelID, "-", len(chanMessages))
-    var mesToDelete []string
+    var mesToDelete map[string]string
     for {
         if len(mesToDelete) == amount {
             break
@@ -299,13 +299,20 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
             logInfo(mes.ID, mes.Author.Username, mes.Author.ID)
             lastMessageChecked = mes.ID
             if mes.Author.ID == botID {
-                mesToDelete = append(mesToDelete, mes.ID)
+                if _, ok := mesToDelete[mes.ID]; !ok {
+                    mesToDelete[mes.ID] = mes.ID
+                }
                 if len(mesToDelete) == amount {
                     break
                 }
             }
         }
-        chanMessages, _ = s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+        chm, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+        if compareMesArrays(chm, chanMessages) {
+            logInfo("Reached the end, exiting loop...")
+            break
+        }
+        chanMessages = chm
     }
     for _, mID := range mesToDelete {
         err = s.ChannelMessageDelete(m.ChannelID, mID)
@@ -452,4 +459,13 @@ func containsUser(users []*discordgo.User, userID string) bool {
 		}
 	}
 	return false
+}
+
+func compareMesArrays(a, b []*discordgo.Message) bool {
+    for i := range a {
+        if a[i].ID != b[i].ID {
+            return false
+        }
+    }
+    return true
 }
