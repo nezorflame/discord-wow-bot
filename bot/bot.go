@@ -272,37 +272,50 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Removing bot messages...")
     var err error
 	user := m.Author.Username
-    amount := strings.Replace(m.Message.Content, "!clean", "", 1)
-    amount = strings.TrimPrefix(amount, " ")
-    logInfo("User", user, "- amount for deletion:", amount)
-    ch, _ := s.Channel(m.ChannelID)
-    var am int
-    switch amount {
-        case "all":
+    am := strings.Replace(m.Message.Content, "!clean", "", 1)
+    am = strings.Replace(am, " ", "", -1)
+    logInfo("User", user, "- amount for deletion:", am)
+    var amount int
+    switch am {
         case "":
-            am = 1
+            amount = 1
         default:
-            am, err = strconv.Atoi(amount)
+            amount, err = strconv.Atoi(am)
             if err != nil {
                 logOnErr(err)
                 return
             }
+            if amount > 100 {
+                logInfo("Can delete only 100 messages!")
+                amount = 100
+            }
     }
-    logInfo("Amount to delete:", am)
-    var count int
-    logInfo("Total messages in channel", m.ChannelID, "-", len(ch.Messages))
-    for _, m := range ch.Messages {
-        logInfo(m.ID, m.Author.Username, m.Author.ID)
-        if m.Author.ID == botID {
-            err = s.ChannelMessageDelete(m.ChannelID, m.ID)
-            logOnErr(err)
-            count++
-            if count == am {
-                break
+    logInfo("Amount to delete:", amount)
+    lastMessageChecked := m.ID
+    chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+    logInfo("Got messages in channel", m.ChannelID, "-", len(chanMessages))
+    var mesToDelete []string
+    for {
+        if len(mesToDelete) == amount {
+            break
+        }
+        for _, mes := range chanMessages {
+            logInfo(mes.ID, mes.Author.Username, mes.Author.ID)
+            lastMessageChecked = mes.ID
+            if mes.Author.ID == botID {
+                mesToDelete = append(mesToDelete, mes.ID)
+                if len(mesToDelete) == amount {
+                    break
+                }
             }
         }
+        chanMessages, _ = s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
     }
-    logInfo("Deleted", count, "messages")
+    err = s.ChannelMessagesBulkDelete(m.ChannelID, mesToDelete)
+    logOnErr(err)
+    if err == nil {
+        logInfo("Deleted all messages")
+    }
     return
 }
 
