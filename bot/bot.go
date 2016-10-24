@@ -285,10 +285,6 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
                 logOnErr(err)
                 return
             }
-            if amount > 100 {
-                logInfo("Can delete only 100 messages!")
-                amount = 100
-            }
     }
     logInfo("Amount to delete:", amount)
     lastMessageChecked := m.ID
@@ -311,11 +307,11 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
         }
         chanMessages, _ = s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
     }
-    err = s.ChannelMessagesBulkDelete(m.ChannelID, mesToDelete)
-    logOnErr(err)
-    if err == nil {
-        logInfo("Deleted all messages")
+    for _, mID := range mesToDelete {
+        err = s.ChannelMessageDelete(m.ChannelID, mID)
+        logOnErr(err)
     }
+    logInfo("Deleted all messages")
     return
 }
 
