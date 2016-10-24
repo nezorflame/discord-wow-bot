@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// GetJSONResponse - function for getting the GET request response in form of JSON
 func GetJSONResponse(url string) ([]byte, error) {
 	r, err := http.Get(url)
 	if err != nil {
@@ -29,6 +30,8 @@ func GetJSONResponse(url string) ([]byte, error) {
 	return body, nil
 }
 
+// PostJSONResponse - function for getting the POST request response in form of JSON
+// value transmitted is a link for a Google URL Shortener
 func PostJSONResponse(url, value string) ([]byte, error) {
 	var jsonStr = []byte(`{"longUrl": "` + value + `"}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
