@@ -244,6 +244,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "!clean") {
 		cleanUp(s, m)
 	}
+	if strings.HasPrefix(m.Content, "!announce") {
+		mes := strings.TrimPrefix(m.Message.Content, "!announce")
+		logInfo(m.Author.Username, "is announcing a message:", mes)
+		err := sendMessage(s, DiscordMChanID, mes)
+		logOnErr(err)
+	}
 	switch m.Content {
 	case "!ping":
 		err := sendMessage(s, m.ChannelID, consts.Pong)
