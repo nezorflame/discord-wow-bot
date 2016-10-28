@@ -2,8 +2,9 @@ package bot
 
 import (
 	"log"
+	"math/rand"
+	"strconv"
 	"strings"
-    "strconv"
 	"time"
 
 	"github.com/arteev/fmttab"
@@ -24,8 +25,8 @@ var (
 	// DiscordMChanID main guild channel ID
 	DiscordMChanID string
 
-    // Users - map of guild members
-    Users map[string]string
+	// Users - map of guild members
+	Users map[string]string
 
 	botID   string
 	session *discordgo.Session
@@ -208,7 +209,7 @@ func RunGuildSpammer(s *discordgo.Session) {
 	for {
 		time.Sleep(2 * time.Hour)
 		if timeIsAllowed() {
-            err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
+			err := sendMessage(s, DiscordMChanID, consts.SpamMessage)
 			logOnErr(err)
 		}
 	}
@@ -269,6 +270,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		helpReporter(s, m)
 	case "!boobs":
 		boobsReporter(s, m)
+	case "!randomatio":
+		matioReporter(s, m)
 	case "!!printpinned":
 		logPinnedMessages(s)
 	case "!!terminate":
@@ -278,62 +281,62 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Removing bot messages...")
-    var err error
+	var err error
 	user := m.Author.Username
-    am := strings.Replace(m.Message.Content, "!clean", "", 1)
-    am = strings.Replace(am, " ", "", -1)
-    logInfo("User", user, "- amount to delete:", am)
-    var amount int
-    switch am {
-        case "all":
-            amount = -1
-        case "":
-            amount = 1
-        default:
-            amount, err = strconv.Atoi(am)
-            if err != nil {
-                logOnErr(err)
-                return
-            }
-    }
-    if m.ChannelID == DiscordMChanID && !containsUser(consts.Admins, m.Author.ID) && (amount > 3 || amount == -1) {
-        logInfo("User is trying to delete all bot messages from main channel! Won't work!")
-        err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
+	am := strings.Replace(m.Message.Content, "!clean", "", 1)
+	am = strings.Replace(am, " ", "", -1)
+	logInfo("User", user, "- amount to delete:", am)
+	var amount int
+	switch am {
+	case "all":
+		amount = -1
+	case "":
+		amount = 1
+	default:
+		amount, err = strconv.Atoi(am)
+		if err != nil {
+			logOnErr(err)
+			return
+		}
+	}
+	if m.ChannelID == DiscordMChanID && !containsUser(consts.Admins, m.Author.ID) && (amount > 3 || amount == -1) {
+		logInfo("User is trying to delete all bot messages from main channel! Won't work!")
+		err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
 		logOnErr(err)
-        return
-    }
-    lastMessageChecked := m.ID
-    chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
-    mesToDelete := make(map[string]string)
-    for {
-        if len(mesToDelete) == amount {
-            break
-        }
-        for _, mes := range chanMessages {
-            logInfo(mes.ID, mes.Author.Username, mes.Author.ID)
-            lastMessageChecked = mes.ID
-            if mes.Author.ID == botID {
-                if _, ok := mesToDelete[mes.ID]; !ok {
-                    mesToDelete[mes.ID] = mes.ID
-                }
-                if len(mesToDelete) == amount {
-                    break
-                }
-            }
-        }
-        chm, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
-        if compareMesArrays(chm, chanMessages) {
-            logInfo("Reached the end, exiting loop...")
-            break
-        }
-        chanMessages = chm
-    }
-    for _, mID := range mesToDelete {
-        err = s.ChannelMessageDelete(m.ChannelID, mID)
-        logOnErr(err)
-    }
-    logInfo("Deleted all messages")
-    return
+		return
+	}
+	lastMessageChecked := m.ID
+	chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+	mesToDelete := make(map[string]string)
+	for {
+		if len(mesToDelete) == amount {
+			break
+		}
+		for _, mes := range chanMessages {
+			logInfo(mes.ID, mes.Author.Username, mes.Author.ID)
+			lastMessageChecked = mes.ID
+			if mes.Author.ID == botID {
+				if _, ok := mesToDelete[mes.ID]; !ok {
+					mesToDelete[mes.ID] = mes.ID
+				}
+				if len(mesToDelete) == amount {
+					break
+				}
+			}
+		}
+		chm, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+		if compareMesArrays(chm, chanMessages) {
+			logInfo("Reached the end, exiting loop...")
+			break
+		}
+		chanMessages = chm
+	}
+	for _, mID := range mesToDelete {
+		err = s.ChannelMessageDelete(m.ChannelID, mID)
+		logOnErr(err)
+	}
+	logInfo("Deleted all messages")
+	return
 }
 
 func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -345,6 +348,13 @@ func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 func boobsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Sending boobies to user...:)")
 	err := sendMessage(s, m.ChannelID, consts.Boobies)
+	logOnErr(err)
+}
+
+func matioReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
+	logInfo("Sending random Matio quote to user o:)")
+	matioQuote := consts.MatioQuotes[rand.Intn(len(consts.MatioQuotes))]
+	err := sendMessage(s, m.ChannelID, matioQuote)
 	logOnErr(err)
 }
 
@@ -476,39 +486,39 @@ func containsUser(users []string, userID string) bool {
 }
 
 func compareMesArrays(a, b []*discordgo.Message) bool {
-    for i := range a {
-        if a[i].ID != b[i].ID {
-            return false
-        }
-    }
-    return true
+	for i := range a {
+		if a[i].ID != b[i].ID {
+			return false
+		}
+	}
+	return true
 }
 
 func timeIsAllowed() bool {
-    location, err := time.LoadLocation(consts.Timezone)
-    panicOnErr(err)
-    now := time.Now().In(location)
-    hour := now.Hour()
-    weekday := now.Weekday()
-    switch weekday {
-        // saturday has raids and is a holiday
-        case time.Saturday:
-            if !(hour >= 2 && hour <= 10 || hour >= 20 && hour <= 23) {
-                logInfo("Saturday spam :) time now:", now.String())
-                return true
-            }
-        // sunday 
-        case time.Sunday:
-            if !(hour >= 2 && hour <= 8) {
-                logInfo("Sunday spam :) time now:", now.String())
-                return true
-            }
-        // work days
-        default:
-            if !(hour >= 2 && hour <= 8 || hour >= 20 && hour <= 23) {
-                logInfo("Workday spam :) time now:", now.String())
-                return true
-            }
-    }
-    return false
+	location, err := time.LoadLocation(consts.Timezone)
+	panicOnErr(err)
+	now := time.Now().In(location)
+	hour := now.Hour()
+	weekday := now.Weekday()
+	switch weekday {
+	// saturday has raids and is a holiday
+	case time.Saturday:
+		if !(hour >= 2 && hour <= 10 || hour >= 20 && hour <= 23) {
+			logInfo("Saturday spam :) time now:", now.String())
+			return true
+		}
+	// sunday
+	case time.Sunday:
+		if !(hour >= 2 && hour <= 8) {
+			logInfo("Sunday spam :) time now:", now.String())
+			return true
+		}
+	// work days
+	default:
+		if !(hour >= 2 && hour <= 8 || hour >= 20 && hour <= 23) {
+			logInfo("Workday spam :) time now:", now.String())
+			return true
+		}
+	}
+	return false
 }
