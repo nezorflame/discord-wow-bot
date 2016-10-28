@@ -30,7 +30,7 @@ type GuildInfo struct {
     SideInt             int           `json:"side"`
     Side                string
     AchievementPoints   int           `json:"achievementPoints"`
-    LastModified        int           `json:"lastModified"`
+    LastModified        int64         `json:"lastModified"`
     GuildMembersList    MembersList   `json:"members"`
     GuildNewsList       NewsList      `json:"news"`
 }
@@ -66,7 +66,7 @@ type Achievement struct {
     Title               string          `json:"title"`
     Points              int             `json:"points"`
     Description         string          `json:"description"`
-    RewardItems         []string        `json:"rewardItems"`
+    RewardItems         []Item          `json:"rewardItems"`
     Icon                string          `json:"icon"`
     Criteria            []Criteria      `json:"criteria"`
     AccountWide         bool            `json:"accountWide"`

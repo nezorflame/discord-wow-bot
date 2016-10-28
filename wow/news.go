@@ -31,7 +31,8 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		logOnErr(err)
 		return nil, err
 	}
-	gInfo, err := getGuildInfoFromJSON(&respJSON)
+	gInfo := new(GuildInfo)
+	err = gInfo.unmarshal(&respJSON)
 	if err != nil {
 		return
 	}

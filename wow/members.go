@@ -21,7 +21,7 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 		gMembers = gMembers.refillMembers()
 		logInfo("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
-		giJSON, err := getJSONFromGuildInfo(&gInfo)
+		giJSON, err := gInfo.marshal()
 		err = db.Put("Main", consts.GuildMembersBucketKey, giJSON)
 		logOnErr(err)
 	} else {
@@ -47,7 +47,8 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 			return
 		}
 	}
-	gi, err := getGuildInfoFromJSON(&membersJSON)
+	gi := new(GuildInfo)
+	err = gi.unmarshal(&membersJSON)
 	if err != nil {
 		return
 	}
@@ -67,11 +68,12 @@ func (ml *MembersList) getAdditionalMembers() error {
 				logOnErr(err)
 				return err
 			}
-			addGInfo, err := getGuildInfoFromJSON(&respJSON)
+			gi := new(GuildInfo)
+			err = gi.unmarshal(&respJSON)
 			if err != nil {
 				return err
 			}
-			for _, member := range addGInfo.GuildMembersList {
+			for _, member := range gi.GuildMembersList {
 				if member.Member.Name == character {
 					*ml = append(*ml, member)
 				}

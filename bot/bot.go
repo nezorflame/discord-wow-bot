@@ -11,6 +11,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/nezorflame/discord-wow-bot/consts"
 	"github.com/nezorflame/discord-wow-bot/wow"
+	"fmt"
 )
 
 var (
@@ -354,7 +355,8 @@ func boobsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 func matioReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 	logInfo("Sending random Matio quote to user o:)")
 	matioQuote := consts.MatioQuotes[rand.Intn(len(consts.MatioQuotes))]
-	err := sendMessage(s, m.ChannelID, matioQuote)
+	message := fmt.Sprintf(`***"%s" (c) Матио 2016***`, matioQuote)
+	err := sendMessage(s, m.ChannelID, message)
 	logOnErr(err)
 }
 
