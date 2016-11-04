@@ -52,7 +52,6 @@ func Start() {
 	logOnErr(err)
 	logInfo("Starting guild watcher and spammer...")
 	go RunGuildWatcher(session)
-	go RunGuildSpammer(session)
 }
 
 func logDebug(v ...interface{}) {
