@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+	"math/rand"
+
 	"github.com/arteev/fmttab"
 	"github.com/bwmarrin/discordgo"
 	"github.com/nezorflame/discord-wow-bot/consts"
 	"github.com/nezorflame/discord-wow-bot/wow"
-	"fmt"
 )
 
 var (
@@ -255,6 +257,19 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch m.Content {
 	case "!ping":
 		err := sendMessage(s, m.ChannelID, consts.Pong)
+		logOnErr(err)
+	case "!roll":
+		roll := rand.Intn(100) + 1
+		var message string
+		switch roll {
+			case 1:
+				message = fmt.Sprintf(consts.Roll1, m.Author.Username)
+			case 100:
+				message = fmt.Sprintf(consts.Roll100, m.Author.Username)
+			default:
+				message = fmt.Sprintf(consts.Roll, m.Author.Username, roll)
+		}
+		err := sendMessage(s, m.ChannelID, message)
 		logOnErr(err)
 	case "!johncena":
 		err := sendMessage(s, m.ChannelID, consts.JohnCena)
