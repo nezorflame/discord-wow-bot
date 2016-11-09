@@ -260,11 +260,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var message string
 		switch roll {
 		case 1:
-			message = fmt.Sprintf(consts.Roll1, m.Author.Username)
+			message = fmt.Sprintf(consts.Roll1, m.Author.ID)
 		case 100:
-			message = fmt.Sprintf(consts.Roll100, m.Author.Username)
+			message = fmt.Sprintf(consts.Roll100, m.Author.ID)
 		default:
-			message = fmt.Sprintf(consts.Roll, m.Author.Username, roll)
+			message = fmt.Sprintf(consts.Roll, m.Author.ID, roll)
 		}
 		err := sendMessage(s, m.ChannelID, message)
 		logOnErr(err)
