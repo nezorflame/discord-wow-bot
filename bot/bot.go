@@ -1,14 +1,12 @@
 package bot
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
-
-	"fmt"
-	"math/rand"
 
 	"github.com/arteev/fmttab"
 	"github.com/bwmarrin/discordgo"
@@ -261,12 +259,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		roll := rand.Intn(100) + 1
 		var message string
 		switch roll {
-			case 1:
-				message = fmt.Sprintf(consts.Roll1, m.Author.Username)
-			case 100:
-				message = fmt.Sprintf(consts.Roll100, m.Author.Username)
-			default:
-				message = fmt.Sprintf(consts.Roll, m.Author.Username, roll)
+		case 1:
+			message = fmt.Sprintf(consts.Roll1, m.Author.Username)
+		case 100:
+			message = fmt.Sprintf(consts.Roll100, m.Author.Username)
+		default:
+			message = fmt.Sprintf(consts.Roll, m.Author.Username, roll)
 		}
 		err := sendMessage(s, m.ChannelID, message)
 		logOnErr(err)
