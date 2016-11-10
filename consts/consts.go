@@ -2,9 +2,9 @@ package consts
 
 // Admins - users with admin rights
 var Admins = []string{
-	"208227258954022912", 
-	"216928312260296704", 
-	"141121531588640769", 
+	"208227258954022912",
+	"216928312260296704",
+	"141121531588640769",
 	"217673644854214667",
 }
 
@@ -15,7 +15,7 @@ var MatioQuotes = []string{
 	"Лина, у тебя фрейм какой-то не такой, не свой, в общем!",
 	"Где мы бля.",
 	"Хочется что-то сказать, но тут не добавить, не убавить.",
-    "Благословляю тебя, сын мой.",
+	"Благословляю тебя, сын мой.",
 	"Благословляю тебя, дочь моя.",
 	"Залупу Вам на эполеты!",
 	"Все псы получают рес.",
@@ -31,9 +31,9 @@ const (
 	GuildName       = "Аэтернум"
 	GuildRealm      = "Ревущий фьорд"
 	Pong            = "Pong!"
-	Roll			= "<@%s> выбрасывает **%d**"
-	Roll100			= "<@%s> выбрасывает **100!!!** IT'S SUPER EFFECTIVE!!!"
-	Roll1			= "<@%s> выбрасывает **1!** Поздравляю! :grin:"
+	Roll            = "<@%s> выбрасывает **%d**"
+	Roll100         = "<@%s> выбрасывает **100!!!** IT'S SUPER EFFECTIVE!!!"
+	Roll1           = "<@%s> выбрасывает **1!** Поздравляю! :grin:"
 	Relics          = "https://docs.google.com/spreadsheets/d/11RqT6EIelFWHB1b8f_scFo8sPdXGVYFii_Dr7kkOFLY/edit#gid=1060702296"
 	RGB             = "https://docs.google.com/spreadsheets/d/1apphJ2vlZL4eQFZMKeUrYC34PsNt7JFeTZiqNtb0NyE/htmlview?sle=true"
 	RealmOn         = "Сервер онлайн! :smile:"
@@ -41,6 +41,7 @@ const (
 	RealmHasQueue   = "На сервере очередь, готовься идти делать чай :pensive:"
 	RealmHasNoQueue = "Очередей нет, можно заходить! :smile:"
 	SpamMessage     = "Напоминаем: поспамив о наборе в гильдию, вы поможете нашему коллективу обрести должное величие среди пантеона богов WoWProgress! :smile:"
+	Time            = "Московское время: %s"
 
 	GMCAcquired = "Получаю список согильдейцев из Армори...секундочку :smile:"
 	GPCAcquired = "Получаю список профессий в гильдии из Армори...секундочку :smile:"

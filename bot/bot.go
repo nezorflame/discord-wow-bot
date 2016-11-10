@@ -255,6 +255,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "!ping":
 		err := sendMessage(s, m.ChannelID, consts.Pong)
 		logOnErr(err)
+	case "!time":
+		location, err := time.LoadLocation(consts.Timezone)
+		logOnErr(err)
+		now := time.Now().In(location).Format("15:04:05.9999")
+		err = sendMessage(s, m.ChannelID, fmt.Sprintf(consts.Time, now))
+		logOnErr(err)
 	case "!roll":
 		roll := rand.Intn(100) + 1
 		var message string
