@@ -258,7 +258,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "!time":
 		location, err := time.LoadLocation(consts.Timezone)
 		logOnErr(err)
-		now := time.Now().In(location).Format("15:04:05.9999")
+		now := time.Now().In(location).Format("15:04:05")
 		err = sendMessage(s, m.ChannelID, fmt.Sprintf(consts.Time, now))
 		logOnErr(err)
 	case "!roll":
