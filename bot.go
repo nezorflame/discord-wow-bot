@@ -13,17 +13,6 @@ import (
 )
 
 var (
-	// Logger for logging
-	Logger *log.Logger
-	// DiscordToken bot token
-	DiscordToken string
-	// WoWToken API token
-	WoWToken string
-	// GoogleToken API token
-	GoogleToken string
-	// DiscordMChanID main guild channel ID
-	DiscordMChanID string
-
 	// Users - map of guild members
 	Users map[string]string
 

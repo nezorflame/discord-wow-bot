@@ -25,6 +25,7 @@ func panicOnError(err error) {
 	}
 }
 
+// Init initializes DB
 func Init() {
 	// Open the my.db data file in your current directory.
 	// It will be created if it doesn't exist.
@@ -42,10 +43,12 @@ func Init() {
 	logOnError(err)
 }
 
+// Close closes the connection
 func Close() {
 	db.Close()
 }
 
+// Watcher runs on schedule
 func Watcher() {
 	for {
 		yesterday := getStringDateFromToday(-1)
@@ -57,6 +60,7 @@ func Watcher() {
 	}
 }
 
+// Get returns the value for key
 func Get(bucketName, key string) (value []byte) {
 	bName := bucketName
 	if bucketName == "Main" {
@@ -70,6 +74,7 @@ func Get(bucketName, key string) (value []byte) {
 	return
 }
 
+// Put writes the vakue to DB
 func Put(bucketName, key string, value []byte) (err error) {
 	bName := bucketName
 	if bucketName == "Main" {

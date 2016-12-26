@@ -8,12 +8,11 @@ var Admins = []string{
 	"217673644854214667",
 }
 
+// All the needed consts
 const (
 	Region          = "eu"
 	Locale          = "ru_RU"
 	Timezone        = "Europe/Moscow"
-	GuildName       = "Мисклик"
-	GuildRealm      = "Ревущий фьорд"
 	Pong            = "Pong!"
 	Roll            = "<@%s> выбрасывает **%d**"
 	Roll100         = "<@%s> выбрасывает **100!!!** IT'S SUPER EFFECTIVE!!!"
@@ -57,8 +56,6 @@ __Команды для WoW'a:__
 
 С вопросами и предложениями обращаться к **Аэтерису (Илье)**.
 Хорошего кача и удачи в борьбе с Легионом! :smile:`
-
-	GuildRosterMID = "218849158721830912"
 
 	WoWAPIRealmsLink         = "https://%v.api.battle.net/wow/realm/status?locale=%v&apikey=%v"
 	WoWAPIGuildMembersLink   = "https://%v.api.battle.net/wow/guild/%v/%v?fields=members&locale=%v&apikey=%v"

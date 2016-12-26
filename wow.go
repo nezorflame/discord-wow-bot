@@ -109,7 +109,7 @@ func GetRealmStatus(realmName string) (bool, error) {
 			return r.Status, nil
 		}
 	}
-	return false, errors.New("No such realm is present!")
+	return false, errors.New("No such realm is present")
 }
 
 // GetRealmQueueStatus - function for receiving realm queue status
@@ -123,7 +123,7 @@ func GetRealmQueueStatus(realmName string) (bool, error) {
 			return r.Queue, nil
 		}
 	}
-	return false, errors.New("No such realm is present!")
+	return false, errors.New("No such realm is present")
 }
 
 // GetRealmInfo - function for receiving realm info
@@ -200,7 +200,7 @@ func GetGuildProfs(realmName, guildName string, param string) ([]map[string]stri
 	if param != "" {
 		s := strings.Split(param, "=")
 		if len(s) < 2 {
-			return nil, errors.New("Не указана желаемая профессия! Повтори ввод.")
+			return nil, errors.New("Не указана желаемая профессия, повтори ввод")
 		}
 		profName = s[1]
 	}
@@ -233,7 +233,7 @@ func GetGuildProfs(realmName, guildName string, param string) ([]map[string]stri
 		}
 	}
 	if len(guildProfsList) == 0 {
-		return nil, errors.New("Такой профессии ни у кого нет, или она введена неверно!")
+		return nil, errors.New("Такой профессии ни у кого нет, или она введена неверно")
 	}
 	return guildProfsList, nil
 }
@@ -255,7 +255,7 @@ func GetRealmAndGuildNames(message string, command string) (string, string, erro
 	}
 	s := strings.Split(commandString, ", ")
 	if len(s) < 2 {
-		return "", "", errors.New("Команда введена неверно! Пожалуйста, попробуйте еще раз.")
+		return "", "", errors.New("Команда введена неверно, попробуй еще раз")
 	}
 	return s[0], s[1], nil
 }

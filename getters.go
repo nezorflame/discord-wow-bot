@@ -146,7 +146,7 @@ func getRealmByName(realmName string) (Realm, error) {
 			return r, nil
 		}
 	}
-	return *new(Realm), errors.New("No such realm is present!")
+	return *new(Realm), errors.New("No such realm is present")
 }
 
 func getRealmSlugByName(realmName *string) (string, error) {
@@ -159,5 +159,5 @@ func getRealmSlugByName(realmName *string) (string, error) {
 			return r.Slug, nil
 		}
 	}
-	return "", errors.New("No such realm is present!")
+	return "", errors.New("No such realm is present")
 }
