@@ -4,16 +4,30 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/nezorflame/discord-wow-bot/bot"
-	"github.com/nezorflame/discord-wow-bot/db"
 )
 
 var logger *log.Logger
 
+func logDebug(v ...interface{}) {
+	Logger.SetPrefix("DEBUG ")
+	Logger.Println(v...)
+}
+
 func logInfo(v ...interface{}) {
-	logger.SetPrefix("INFO  ")
-	logger.Println(v...)
+	Logger.SetPrefix("INFO  ")
+	Logger.Println(v...)
+}
+
+func panicOnErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func logOnErr(err error) {
+	if err != nil {
+		logDebug(err)
+	}
 }
 
 func determineListenAddress() (string, error) {
@@ -27,25 +41,25 @@ func determineListenAddress() (string, error) {
 func init() {
 	// Create initials.
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
-	bot.Logger = logger
+	Logger = logger
 	// Parse options.
-	bot.DiscordToken = os.Getenv("dt")
-	bot.WoWToken = os.Getenv("wt")
-	bot.GoogleToken = os.Getenv("gt")
-	bot.DiscordMChanID = os.Getenv("mc")
-	if bot.DiscordToken == "" || bot.WoWToken == "" || bot.GoogleToken == "" || bot.DiscordMChanID == "" {
+	DiscordToken = os.Getenv("dt")
+	WoWToken = os.Getenv("wt")
+	GoogleToken = os.Getenv("gt")
+	DiscordMChanID = os.Getenv("mc")
+	if DiscordToken == "" || WoWToken == "" || GoogleToken == "" || DiscordMChanID == "" {
 		log.Fatalln("Not enough variables to start! Abort mission! ABORT!!!")
 		os.Exit(1)
 	}
 }
 
 func main() {
-	logInfo("Initiating db...")
-	db.Init()
-	defer db.Close()
-	go db.Watcher()
-	logInfo("Starting bot...")
-	bot.Start()
+	logInfo("Initiating ..")
+	Init()
+	defer Close()
+	go Watcher()
+	logInfo("Starting ..")
+	Start()
 	logInfo("Bot is now running.")
 	<-make(chan struct{})
 }
