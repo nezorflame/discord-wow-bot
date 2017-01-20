@@ -1,0 +1,67 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "Xs6XZNstXRLyaCIcH2oO8uFppI8=",
+			"path": "github.com/arteev/fmttab",
+			"revision": "b98bd705822d1a494b1f857dfcfaa80b5b0c3d82",
+			"revisionTime": "2016-08-25T16:39:26Z"
+		},
+		{
+			"checksumSHA1": "vZ9vtZKrboNfcsngYAljmRC2uWM=",
+			"path": "github.com/arteev/fmttab/columns",
+			"revision": "b98bd705822d1a494b1f857dfcfaa80b5b0c3d82",
+			"revisionTime": "2016-08-25T16:39:26Z"
+		},
+		{
+			"checksumSHA1": "2nkWfwrIpxAQU1Z6Is5oOvrYqjs=",
+			"path": "github.com/arteev/fmttab/eol",
+			"revision": "b98bd705822d1a494b1f857dfcfaa80b5b0c3d82",
+			"revisionTime": "2016-08-25T16:39:26Z"
+		},
+		{
+			"checksumSHA1": "W36Jt76GBhJ10ixPaiLR1np8IQE=",
+			"path": "github.com/arteev/tern",
+			"revision": "b962e041284a02d786ef8856c5832348f7d69f92",
+			"revisionTime": "2016-08-04T06:45:19Z"
+		},
+		{
+			"checksumSHA1": "OmaeMGvTQLiEA102KDo4+WWF8J8=",
+			"path": "github.com/boltdb/bolt",
+			"revision": "2e25e3bb4285d41d223bb80b12658a2c9b9bf3e3",
+			"revisionTime": "2016-12-23T17:44:54Z"
+		},
+		{
+			"checksumSHA1": "uviChbqqhvoeErm0M5sgPHVo8kA=",
+			"path": "github.com/bwmarrin/discordgo",
+			"revision": "5835676872d7fa65ee37b32672079c4ede2c1855",
+			"revisionTime": "2016-12-10T14:47:14Z"
+		},
+		{
+			"checksumSHA1": "v1aD1S+lEDJ7FBmEHmvR9MqVr6w=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "3ab3a8b8831546bd18fd182c20687ca853b2bb13",
+			"revisionTime": "2016-12-15T22:53:35Z"
+		},
+		{
+			"checksumSHA1": "Y/FcWB2/xSfX1rRp7HYhktHNw8s=",
+			"path": "golang.org/x/crypto/nacl/secretbox",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "x7EiaCEsuaZ3jc8r+8KBmYwESmA=",
+			"path": "golang.org/x/crypto/poly1305",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "w8PESKJweP+BCAxCYPU1QC08qUU=",
+			"path": "golang.org/x/crypto/salsa20/salsa",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		}
+	],
+	"rootPath": "github.com/nezorflame/discord-wow-bot"
+}
