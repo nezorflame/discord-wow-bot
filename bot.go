@@ -73,8 +73,7 @@ func sendMessage(session *discordgo.Session, chID string, message string) error 
 	return nil
 }
 
-func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage string) error {
-	var err error
+func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage string) (err error) {
 	message := fullMessage
 	i := len(message)
 	if len(message) > 1999 {
@@ -115,13 +114,10 @@ func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage s
 			i = len(message)
 		}
 		_, err = session.ChannelMessageSend(chID, message)
-		if err != nil {
-			return err
-		}
 	} else {
 		_, err = session.ChannelMessageSend(chID, fullMessage)
 	}
-	return err
+	return
 }
 
 func logPinnedMessages(s *discordgo.Session) {
@@ -277,7 +273,7 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	if m.ChannelID == DiscordMChanID && !containsUser(Admins, m.Author.ID) && (amount > 3 || amount == -1) {
 		logInfo("User is trying to delete all bot messages from main channel! Won't work!")
-		err := sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
+		err = sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
 		logOnErr(err)
 		return
 	}
