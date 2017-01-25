@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/golang/glog"
 )
 
 func getGuildMembers(realmName, guildName string, params []string) (*MembersList, error) {
@@ -13,33 +15,33 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 	}
 	gMembers := gInfo.GuildMembersList
 	if !cached {
-		logInfo("Got", len(gMembers), "guild members from API. Filling the gaps...")
+		glog.Info("Got", len(gMembers), "guild members from API. Filling the gaps...")
 		gMembers = gMembers.refillMembers()
-		logInfo("Saving guild members into cache...")
+		glog.Info("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
 		giJSON, err := gInfo.marshal()
-		err = Put("Main", GuildMembersBucketKey, giJSON)
-		logOnErr(err)
+		err = Put("Main", o.Bucket, giJSON)
+		glog.Error(err)
 	} else {
-		logInfo("Got", len(gMembers), "guild members from cache")
+		glog.Info("Got", len(gMembers), "guild members from cache")
 	}
 	gMembers = gMembers.SortGuildMembers(params)
-	logInfo("Sorted guild members")
+	glog.Info("Sorted guild members")
 	return &gMembers, nil
 }
 
 func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, err error) {
-	logInfo("getting main guild members...")
+	glog.Info("getting main guild members...")
 	cached = true
-	membersJSON := Get("Main", GuildMembersBucketKey)
+	membersJSON := Get("Main", o.Bucket)
 	if membersJSON == nil {
-		logInfo("No cache is present, getting from API...")
+		glog.Info("No cache is present, getting from API...")
 		cached = false
-		apiLink := fmt.Sprintf(WoWAPIGuildMembersLink, region, strings.Replace(*guildRealm, " ", "%20", -1),
-			strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
+		apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(*guildRealm, " ", "%20", -1),
+			strings.Replace(*guildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 		membersJSON, err = GetJSONResponse(apiLink)
 		if err != nil {
-			logOnErr(err)
+			glog.Error(err)
 			return
 		}
 	}
@@ -54,14 +56,14 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 }
 
 func (ml *MembersList) getAdditionalMembers() error {
-	logInfo("getting additional guild members...")
+	glog.Info("getting additional guild members...")
 	for realm, m := range addMembers {
 		for guild, character := range m {
-			apiLink := fmt.Sprintf(WoWAPIGuildMembersLink, region, strings.Replace(realm, " ", "%20", -1),
-				strings.Replace(guild, " ", "%20", -1), locale, wowAPIToken)
+			apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(realm, " ", "%20", -1),
+				strings.Replace(guild, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 			respJSON, err := GetJSONResponse(apiLink)
 			if err != nil {
-				logOnErr(err)
+				glog.Error(err)
 				return err
 			}
 			gi := new(GuildInfo)
@@ -89,7 +91,7 @@ func (ml *MembersList) refillMembers() (guildMembers MembersList) {
 			guildMembers = append(guildMembers, gMember)
 		}(m)
 	}
-	logInfo("Members refilled")
+	glog.Info("Members refilled")
 	wg.Wait()
 	return
 }
@@ -105,24 +107,24 @@ func updateCharacter(member GuildMember) (m GuildMember) {
 	m.Member.Race = races[m.Member.RaceInt]
 	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
 	if err != nil {
-		logInfo("updateCharacter(): unable to get realm slug:", err)
+		glog.Info("updateCharacter(): unable to get realm slug:", err)
 		return member
 	}
-	shortLink, err := getArmoryLink(&m.Member.RealmSlug, &m.Member.Name)
+	shortLink, err := getArmoryLink(m.Member.RealmSlug, m.Member.Name)
 	if err != nil {
-		logInfo("updateCharacter(): unable to get Armory link:", err)
+		glog.Info("updateCharacter(): unable to get Armory link:", err)
 		return member
 	}
 	m.Member.Link = shortLink
 	items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
 	if err != nil {
-		logInfo("updateCharacter(): unable to get items:", err)
+		glog.Info("updateCharacter(): unable to get items:", err)
 		return member
 	}
 	m.Member.Items = *items
 	profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
 	if err != nil {
-		logInfo("updateCharacter(): unable to get profs:", err)
+		glog.Info("updateCharacter(): unable to get profs:", err)
 		return member
 	}
 	m.Member.Professions = *profs

@@ -1,1 +1,1 @@
-worker: discord-wow-bot
+worker: discord-wow-bot -logtostderr=true -stderrthreshold=INFO

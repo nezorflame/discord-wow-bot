@@ -5,48 +5,49 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 func getRealms() (*[]Realm, error) {
-	apiLink := fmt.Sprintf(WoWAPIRealmsLink, region, locale, wowAPIToken)
+	apiLink := fmt.Sprintf(o.APIRealmsLink, o.GuildRegion, o.GuildLocale, o.WoWToken)
 	respJSON, err := GetJSONResponse(apiLink)
 	if err != nil {
-		logOnErr(err)
+		glog.Error(err)
 		return nil, err
 	}
 	var realms Realms
-	err = realms.getRealmsFromJSON(&respJSON)
-	if err != nil {
+	if err = realms.unmarshal(&respJSON); err != nil {
 		return nil, err
 	}
 	return &realms.RealmList, nil
 }
 
 func getCharacterItems(characterRealm *string, characterName *string) (*Items, error) {
-	apiLink := fmt.Sprintf(WoWAPICharacterItemsLink, region, strings.Replace(*characterRealm, " ", "%20", -1),
-		*characterName, locale, wowAPIToken)
+	apiLink := fmt.Sprintf(o.APICharItemsLink, o.GuildRegion, strings.Replace(*characterRealm, " ", "%20", -1),
+		*characterName, o.GuildLocale, o.WoWToken)
 	respJSON, err := GetJSONResponse(apiLink)
 	if err != nil {
 		return nil, err
 	}
-	character, err := getCharacterFromJSON(&respJSON)
-	if err != nil {
+	var character Character
+	if err = character.unmarshal(&respJSON); err != nil {
 		return nil, err
 	}
 	return &character.Items, nil
 }
 
 func getCharacterProfessions(characterRealm *string, characterName *string) (*Professions, error) {
-	apiLink := fmt.Sprintf(WoWAPICharacterProfsLink, region, strings.Replace(*characterRealm, " ", "%20", -1),
-		*characterName, locale, wowAPIToken)
+	apiLink := fmt.Sprintf(o.APICharProfsLink, o.GuildRegion, strings.Replace(*characterRealm, " ", "%20", -1),
+		*characterName, o.GuildLocale, o.WoWToken)
 	respJSON, err := GetJSONResponse(apiLink)
 	if err != nil {
-		logInfo(err)
+		glog.Info(err)
 		return nil, err
 	}
-	character, err := getCharacterFromJSON(&respJSON)
-	if err != nil {
-		logInfo(err)
+	var character Character
+	if err := character.unmarshal(&respJSON); err != nil {
+		glog.Info(err)
 		return nil, err
 	}
 	var profs = new(Professions)
@@ -54,9 +55,9 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
 		var prof = new(Profession)
 		prof = &p
 		prof.EngName = profNames[p.ID]
-		shortLink, err := getProfShortLink(&character.RealmSlug, characterName, &p.EngName)
+		shortLink, err := getProfShortLink(character.RealmSlug, *characterName, p.EngName)
 		if err != nil {
-			logInfo(err)
+			glog.Info(err)
 			return &character.Professions, err
 		}
 		prof.Link = shortLink
@@ -71,36 +72,36 @@ func getCharacterProfessions(characterRealm *string, characterName *string) (*Pr
 	return profs, nil
 }
 
-func getArmoryLink(rSlug, cName *string) (string, error) {
-	gAPILink := fmt.Sprintf(GoogleAPIShortenerLink, googleAPIToken)
-	link := fmt.Sprintf(WoWArmoryLink, region, locale[:2], *rSlug, *cName)
+func getArmoryLink(rSlug, cName string) (string, error) {
+	gAPILink := fmt.Sprintf(o.GoogleShortenerLink, o.GoogleToken)
+	link := fmt.Sprintf(o.ArmoryCharLink, o.GuildRegion, o.GuildLocale[:2], rSlug, cName)
 	respJSON, err := PostJSONResponse(gAPILink, link)
 	if err != nil {
-		logInfo(err)
+		glog.Info(err)
 		return "", err
 	}
 	shortLink, err := getURLFromJSON(&respJSON)
 	if err != nil {
-		logInfo(err)
+		glog.Info(err)
 		return "", err
 	}
-	return *shortLink, nil
+	return shortLink, nil
 }
 
-func getProfShortLink(rSlug, cName, pName *string) (string, error) {
-	gAPILink := fmt.Sprintf(GoogleAPIShortenerLink, googleAPIToken)
-	link := fmt.Sprintf(WoWArmoryProfLink, region, locale[:2], *rSlug, *cName, *pName)
+func getProfShortLink(rSlug, cName, pName string) (string, error) {
+	gAPILink := fmt.Sprintf(o.GoogleShortenerLink, o.GoogleToken)
+	link := fmt.Sprintf(o.ArmoryProfLink, o.GuildRegion, o.GuildLocale[:2], rSlug, cName, pName)
 	respJSON, err := PostJSONResponse(gAPILink, link)
 	if err != nil {
-		logInfo(err)
+		glog.Info(err)
 		return "", err
 	}
 	shortLink, err := getURLFromJSON(&respJSON)
 	if err != nil {
-		logInfo(err)
+		glog.Info(err)
 		return "", err
 	}
-	return *shortLink, nil
+	return shortLink, nil
 }
 
 func getItemByID(itemID string) (item *Item, err error) {
@@ -108,15 +109,15 @@ func getItemByID(itemID string) (item *Item, err error) {
 	item = new(Item)
 	cached := true
 	if itemJSON == nil {
-		apiLink := fmt.Sprintf(WoWAPIItemLink, region, itemID, locale, wowAPIToken)
+		apiLink := fmt.Sprintf(o.APIItemLink, o.GuildRegion, itemID, o.GuildLocale, o.WoWToken)
 		itemJSON, err = GetJSONResponse(apiLink)
 		if err != nil {
-			logInfo(err)
+			glog.Info(err)
 			return
 		}
 		err = Put("Items", itemID, itemJSON)
 		if err != nil {
-			logInfo(err)
+			glog.Info(err)
 			return
 		}
 		cached = false
@@ -125,17 +126,16 @@ func getItemByID(itemID string) (item *Item, err error) {
 		err = errors.New("Null JSON! itemID = " + itemID + ", cached = " + strconv.FormatBool(cached))
 		return
 	}
-	err = item.getItemFromJSON(&itemJSON)
-	if err != nil {
-		logInfo(err)
+	if err = item.unmarshal(&itemJSON); err != nil {
+		glog.Info(err)
 		return
 	}
-	item.Link = fmt.Sprintf(WowheadItemLink, itemID)
+	item.Link = fmt.Sprintf(o.WowheadItemLink, itemID)
 	return
 }
 
 func getRealmByName(realmName string) (Realm, error) {
-	logDebug("getRealmByName: " + realmName)
+	glog.Infof("getRealmByName: %s", realmName)
 	realms, err := getRealms()
 	if err != nil {
 		return *new(Realm), err

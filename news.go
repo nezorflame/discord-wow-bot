@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 func getGuildNews(realmName, guildName string) (*NewsList, error) {
@@ -15,17 +17,17 @@ func getGuildNews(realmName, guildName string) (*NewsList, error) {
 	}
 	gNews = gNews.refillNews()
 	gNews = gNews.SortGuildNews()
-	logInfo("Got updated guild news")
+	glog.Info("Got updated guild news")
 	return &gNews, nil
 }
 
 func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error) {
-	logInfo("getting guild news...")
-	apiLink := fmt.Sprintf(WoWAPIGuildNewsLink, region, strings.Replace(*guildRealm, " ", "%20", -1),
-		strings.Replace(*guildName, " ", "%20", -1), locale, wowAPIToken)
+	glog.Info("getting guild news...")
+	apiLink := fmt.Sprintf(o.APIGuildNewsLink, o.GuildRegion, strings.Replace(*guildRealm, " ", "%20", -1),
+		strings.Replace(*guildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 	respJSON, err := GetJSONResponse(apiLink)
 	if err != nil {
-		logOnErr(err)
+		glog.Error(err)
 		return nil, err
 	}
 	gInfo := new(GuildInfo)
@@ -34,13 +36,18 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		return
 	}
 	now := time.Now()
-	before := now.Add(time.Duration(-5 * time.Minute))
+	before := now.Add(time.Duration(-6 * time.Minute))
 	// Fill string valuables
 	gInfo.Side = factions[gInfo.SideInt]
 	for _, n := range gInfo.GuildNewsList {
+		var (
+			utc *time.Location
+			err error
+		)
 		eventTime := time.Unix(n.Timestamp/1000, 0)
-		utc, err := time.LoadLocation(Timezone)
-		panicOnErr(err)
+		if utc, err = time.LoadLocation(o.GuildTimezone); err != nil {
+			glog.Error(err)
+		}
 		n.EventTime = eventTime.In(utc)
 		if inTimeSpan(before, now, eventTime) {
 			gNews = append(gNews, n)
@@ -59,7 +66,7 @@ func (nl *NewsList) refillNews() (guildNews NewsList) {
 			guildNews = append(guildNews, news)
 		}(n)
 	}
-	logInfo("News refilled")
+	glog.Info("News refilled")
 	wg.Wait()
 	return
 }
@@ -68,7 +75,7 @@ func updateNews(newsrecord News) (news News) {
 	if newsrecord.Type == "itemLoot" {
 		item, err := getItemByID(strconv.Itoa(newsrecord.ItemID))
 		if err != nil {
-			logInfo("updateCharacter(): unable to get item by its ID =", newsrecord.ItemID, ":", err)
+			glog.Info("updateCharacter(): unable to get item by its ID =", newsrecord.ItemID, ":", err)
 			return newsrecord
 		}
 		newsrecord.ItemInfo = *item

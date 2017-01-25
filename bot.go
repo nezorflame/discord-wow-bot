@@ -2,43 +2,52 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 
+	"os"
+
 	"github.com/arteev/fmttab"
 	"github.com/bwmarrin/discordgo"
+	"github.com/golang/glog"
 )
 
+// Users - map of guild members
 var (
-	// Users - map of guild members
+	BotID string
 	Users map[string]string
-
-	botID   string
-	session *discordgo.Session
 )
 
 // Start - function to start Discord bot
 func Start() {
-	// Fix for a new Discord Bot token auth
-	DiscordToken = "Bot " + DiscordToken
-	InitializeWoWAPI(&WoWToken, &GoogleToken)
-	logInfo("Logging in...")
-	session, err := discordgo.New(DiscordToken)
-	logInfo("Using bot account token...")
-	u, err := session.User("@me")
-	logOnErr(err)
-	botID = u.ID
-	logInfo("Got BotID =", botID)
-	logInfo("Adding handlers...")
+	var (
+		err     error
+		u       *discordgo.User
+		session *discordgo.Session
+	)
+	InitializeWoWAPI()
+	glog.Info("Logging in...")
+	if session, err = discordgo.New(o.DiscordToken); err != nil {
+		glog.Fatalf("Unable to connect to Discord: %s", err)
+	}
+	glog.Info("Using bot account token...")
+	if u, err = session.User("@me"); err != nil {
+		glog.Fatalf("Unable to get @me: %s", err)
+	} else {
+		BotID = u.ID
+		glog.Infof("Got BotID = %s", BotID)
+	}
+	glog.Info("Adding handlers...")
 	setup(session)
-	logInfo("Opening session...")
-	err = session.Open()
-	logOnErr(err)
-	logInfo("Starting guild watcher and spammer...")
+	glog.Info("Opening session...")
+	if err = session.Open(); err != nil {
+		glog.Fatalf("Unable to open the session: %s", err)
+	}
+	glog.Info("Starting guild watcher and spammer...")
 	go RunGuildWatcher(session)
+	glog.Info("Bot started")
 }
 
 /* Tries to call a method and checking if the method returned an error, if it
@@ -47,15 +56,14 @@ did check to see if it's HTTP 502 from the Discord API and retry for
 func retryOnBadGateway(f func() error) {
 	var err error
 	for i := 0; i < 3; i++ {
-		err = f()
-		if err != nil {
+		if err = f(); err != nil {
 			if strings.HasPrefix(err.Error(), "HTTP 502") {
 				// If the error is Bad Gateway, try again after 1 sec.
 				time.Sleep(1 * time.Second)
 				continue
 			} else {
 				// Otherwise panic !
-				logOnErr(err)
+				glog.Fatal(err)
 			}
 		} else {
 			// In case of no error, return.
@@ -64,17 +72,15 @@ func retryOnBadGateway(f func() error) {
 	}
 }
 
-func sendMessage(session *discordgo.Session, chID string, message string) error {
-	logInfo("SENDING MESSAGE:", message)
+func sendMessage(session *discordgo.Session, chID string, message string) (err error) {
+	glog.Info("SENDING MESSAGE:", message)
 	retryOnBadGateway(func() error {
-		err := sendFormattedMessage(session, chID, message)
-		return err
+		return sendFormattedMessage(session, chID, message)
 	})
-	return nil
+	return
 }
 
-func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage string) (err error) {
-	message := fullMessage
+func sendFormattedMessage(session *discordgo.Session, chID string, message string) (err error) {
 	i := len(message)
 	if len(message) > 1999 {
 		for i > 1999 {
@@ -115,135 +121,153 @@ func sendFormattedMessage(session *discordgo.Session, chID string, fullMessage s
 		}
 		_, err = session.ChannelMessageSend(chID, message)
 	} else {
-		_, err = session.ChannelMessageSend(chID, fullMessage)
+		_, err = session.ChannelMessageSend(chID, message)
 	}
 	return
 }
 
 func logPinnedMessages(s *discordgo.Session) {
-	logInfo("getPinnedMessages called")
-	pinned, err := s.ChannelMessagesPinned(DiscordMChanID)
-	logOnErr(err)
-	logInfo(len(pinned), "messages are pinned:")
+	var (
+		err    error
+		pinned []*discordgo.Message
+	)
+	glog.Info("getPinnedMessages called")
+	if pinned, err = s.ChannelMessagesPinned(o.GeneralChannelID); err != nil {
+		glog.Errorf("Unable to get pinned messages: %s", err)
+		return
+	}
+	glog.Info(len(pinned), "messages are pinned:")
 	for _, message := range pinned {
-		logInfo("["+message.ID+"]", message.Content)
+		glog.Info("["+message.ID+"]", message.Content)
 	}
 }
 
 func printMessageByID(s *discordgo.Session, chID string, mesID string) {
-	logInfo("printMessageByID called")
-	message, err := s.ChannelMessage(DiscordMChanID, mesID)
+	glog.Info("printMessageByID called")
+	message, err := s.ChannelMessage(o.GeneralChannelID, mesID)
 	if err != nil {
-		logInfo("printMessageByID error: ", err)
+		glog.Errorf("Unable to get the message: %s", err)
 		return
 	}
-	err = sendMessage(s, chID, message.Content)
-	logOnErr(err)
+	if err = sendMessage(s, chID, message.Content); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 }
 
 func setup(session *discordgo.Session) {
-	logInfo("Setting up event handlers...")
+	glog.Info("Setting up event handlers...")
 	session.AddHandler(messageCreate)
 }
 
 // RunGuildWatcher - function for starting the guild news watcher
+// TODO: Very dirty, need to rewrite
 func RunGuildWatcher(s *discordgo.Session) {
-	// TODO: Very dirty, need to rewrite
-	legendaries := make(map[string]bool)
+	var (
+		err         error
+		messages    []string
+		legendaries = make(map[string]bool)
+	)
+
 	for {
-		messages, err := GetGuildLegendaries(GuildRealm, GuildName)
-		panicOnErr(err)
+		if messages, err = GetGuildLegendaries(o.GuildRealm, o.GuildName); err != nil {
+			glog.Errorf("Unable to get guild legendaries: %s", err)
+			goto Sleep
+		}
 		for _, m := range messages {
 			if _, ok := legendaries[m]; !ok {
-				err := sendMessage(s, DiscordMChanID, m)
-				logOnErr(err)
-				log.Println(m)
+				if err = sendMessage(s, o.GeneralChannelID, m); err != nil {
+					glog.Errorf("Unable to send the message: %s", err)
+				}
+				glog.Info(m)
 				legendaries[m] = true
 			}
 		}
+	Sleep:
 		time.Sleep(5 * time.Minute)
-	}
-}
-
-// RunGuildSpammer - function for SPAMMING :)
-func RunGuildSpammer(s *discordgo.Session) {
-	for {
-		time.Sleep(2 * time.Hour)
-		if timeIsAllowed() {
-			err := sendMessage(s, DiscordMChanID, SpamMessage)
-			logOnErr(err)
-		}
 	}
 }
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+func messageCreate(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
-	if m.Author.ID == botID {
+	if mes.Author.ID == BotID {
 		return
 	}
 	// Check the command to react and answer
-	if strings.HasPrefix(m.Content, "!status") {
-		statusReporter(s, m)
+	if strings.HasPrefix(mes.Content, "!status") {
+		statusReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!queue") {
-		queueReporter(s, m)
+	if strings.HasPrefix(mes.Content, "!simc") {
+		simcReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!realminfo") {
-		realmInfoReporter(s, m)
+	if strings.HasPrefix(mes.Content, "!queue") {
+		queueReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!guildmembers") {
-		err := sendMessage(s, m.ChannelID, GMCAcquired)
-		logOnErr(err)
-		guildMembersReporter(s, m)
+	if strings.HasPrefix(mes.Content, "!realminfo") {
+		realmInfoReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!guildprofs") {
-		err := sendMessage(s, m.ChannelID, GPCAcquired)
-		logOnErr(err)
-		guildProfsReporter(s, m)
+	if strings.HasPrefix(mes.Content, "!guildmembers") {
+		if err := sendMessage(s, mes.ChannelID, m.GuildMembersList); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+		guildMembersReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!clean") {
-		cleanUp(s, m)
+	if strings.HasPrefix(mes.Content, "!guildprofs") {
+		if err := sendMessage(s, mes.ChannelID, m.GuildProfsList); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+		guildProfsReporter(s, mes)
 	}
-	if strings.HasPrefix(m.Content, "!announce") {
-		mes := strings.TrimPrefix(m.Message.Content, "!announce")
-		logInfo(m.Author.Username, "is announcing a message:", mes)
-		err := sendMessage(s, DiscordMChanID, mes)
-		logOnErr(err)
+	if strings.HasPrefix(mes.Content, "!clean") {
+		cleanUp(s, mes)
 	}
-	switch m.Content {
+	if strings.HasPrefix(mes.Content, "!announce") {
+		message := strings.TrimPrefix(mes.Message.Content, "!announce")
+		glog.Info(mes.Author.Username, "is announcing a message:", message)
+		if err := sendMessage(s, o.GeneralChannelID, message); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+	}
+	switch mes.Content {
 	case "!ping":
-		err := sendMessage(s, m.ChannelID, Pong)
-		logOnErr(err)
+		if err := sendMessage(s, mes.ChannelID, m.Pong); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	case "!roll":
 		roll := rand.Intn(100) + 1
 		var message string
 		switch roll {
 		case 1:
-			message = fmt.Sprintf(Roll1, m.Author.ID)
+			message = fmt.Sprintf(m.Roll1, mes.Author.ID)
 		case 100:
-			message = fmt.Sprintf(Roll100, m.Author.ID)
+			message = fmt.Sprintf(m.Roll100, mes.Author.ID)
 		default:
-			message = fmt.Sprintf(Roll, m.Author.ID, roll)
+			message = fmt.Sprintf(m.RollX, mes.Author.ID, roll)
 		}
-		err := sendMessage(s, m.ChannelID, message)
-		logOnErr(err)
+		if err := sendMessage(s, mes.ChannelID, message); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	case "!johncena":
-		err := sendMessage(s, m.ChannelID, JohnCena)
-		logOnErr(err)
+		if err := sendMessage(s, mes.ChannelID, m.JohnCena); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	case "!relics":
-		err := sendMessage(s, m.ChannelID, Relics)
-		logOnErr(err)
+		if err := sendMessage(s, mes.ChannelID, m.Relics); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	case "!godbook":
-		err := sendMessage(s, m.ChannelID, RGB)
-		logOnErr(err)
-	case "!roster":
-		printMessageByID(s, m.ChannelID, GuildRosterMID)
+		if err := sendMessage(s, mes.ChannelID, m.Godbook); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+	case "!logs":
+		if err := sendMessage(s, mes.ChannelID, m.Logs); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	case "!help", "!помощь":
-		helpReporter(s, m)
+		helpReporter(s, mes)
 	case "!boobs":
-		boobsReporter(s, m)
+		boobsReporter(s, mes)
 	case "!!printpinned":
 		logPinnedMessages(s)
 	case "!!terminate":
@@ -251,13 +275,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("Removing bot messages...")
+func cleanUp(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("Removing bot messages...")
 	var err error
-	user := m.Author.Username
-	am := strings.Replace(m.Message.Content, "!clean", "", 1)
+	user := mes.Author.Username
+	am := strings.Replace(mes.Message.Content, "!clean", "", 1)
 	am = strings.Replace(am, " ", "", -1)
-	logInfo("User", user, "- amount to delete:", am)
+	glog.Infof("User %s - amount to delete: %s", user, am)
 	var amount int
 	switch am {
 	case "all":
@@ -265,29 +289,29 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "":
 		amount = 1
 	default:
-		amount, err = strconv.Atoi(am)
-		if err != nil {
-			logOnErr(err)
+		if amount, err = strconv.Atoi(am); err != nil {
+			glog.Error(err)
 			return
 		}
 	}
-	if m.ChannelID == DiscordMChanID && !containsUser(Admins, m.Author.ID) && (amount > 3 || amount == -1) {
-		logInfo("User is trying to delete all bot messages from main channel! Won't work!")
-		err = sendMessage(s, m.ChannelID, "Прости, но в главном чате мои сообщения могут удалять только админы :smile:")
-		logOnErr(err)
+	if mes.ChannelID == o.GeneralChannelID && !containsUser(o.Admins, mes.Author.ID) && (amount > 3 || amount == -1) {
+		glog.Info("User is trying to delete all bot messages from main channel! Won't work!")
+		if err = sendMessage(s, mes.ChannelID, m.Clean); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 		return
 	}
-	lastMessageChecked := m.ID
-	chanMessages, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+	lastMessageChecked := mes.ID
+	chanMessages, _ := s.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "")
 	mesToDelete := make(map[string]string)
 	for {
 		if len(mesToDelete) == amount {
 			break
 		}
 		for _, mes := range chanMessages {
-			logInfo(mes.ID, mes.Author.Username, mes.Author.ID)
+			glog.Infof("%s %s %s", mes.ID, mes.Author.Username, mes.Author.ID)
 			lastMessageChecked = mes.ID
-			if mes.Author.ID == botID {
+			if mes.Author.ID == BotID {
 				if _, ok := mesToDelete[mes.ID]; !ok {
 					mesToDelete[mes.ID] = mes.ID
 				}
@@ -296,82 +320,199 @@ func cleanUp(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}
 		}
-		chm, _ := s.ChannelMessages(m.ChannelID, 100, lastMessageChecked, "")
+		chm, _ := s.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "")
 		if compareMesArrays(chm, chanMessages) {
-			logInfo("Reached the end, exiting loop...")
+			glog.Info("Reached the end, exiting loop...")
 			break
 		}
 		chanMessages = chm
 	}
 	for _, mID := range mesToDelete {
-		err = s.ChannelMessageDelete(m.ChannelID, mID)
-		logOnErr(err)
+		if err = s.ChannelMessageDelete(mes.ChannelID, mID); err != nil {
+			glog.Errorf("Unable to delete the message: %s", err)
+		}
 	}
-	logInfo("Deleted all messages")
+	glog.Info("Deleted all messages")
 	return
 }
 
-func helpReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("Sending help to user...")
-	err := sendMessage(s, m.ChannelID, Help)
-	logOnErr(err)
+func helpReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("Sending help to user...")
+	if err := sendMessage(s, mes.ChannelID, m.Help); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 }
 
-func boobsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("Sending boobies to user...:)")
-	err := sendMessage(s, m.ChannelID, Boobies)
-	logOnErr(err)
+func boobsReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("Sending boobies to user...:)")
+	if err := sendMessage(s, mes.ChannelID, m.Boobies); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 }
 
-func statusReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("getting realm name string...")
-	realmString := GetRealmName(m.Content, "!status")
-	logInfo(realmString)
-	logInfo("getting realm status and sending it...")
-	realmStatus, err := GetRealmStatus(realmString)
-	if err != nil {
-		sendMessage(s, m.ChannelID, err.Error())
+func statusReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("getting realm name string...")
+	realmString := GetRealmName(mes.Content, "!status")
+	glog.Infof("getting status of %s and sending it...", realmString)
+	if realmStatus, err := GetRealmStatus(realmString); err != nil {
+		glog.Errorf("Unable to get the realm status: %s", err)
 	} else if realmStatus {
-		err := sendMessage(s, m.ChannelID, RealmOn)
-		logOnErr(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.RealmOn); sErr != nil {
+			glog.Error(sErr)
+		}
 	} else {
-		err := sendMessage(s, m.ChannelID, RealmOff)
-		logOnErr(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.RealmOff); sErr != nil {
+			glog.Error(sErr)
+		}
 	}
 }
 
-func queueReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("getting realm name string...")
-	realmString := GetRealmName(m.Content, "!queue")
-	logInfo(realmString)
-	logInfo("getting realm queue status and sending it...")
-	realmQueue, err := GetRealmQueueStatus(realmString)
+func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	var (
+		simcExt = ".simc"
+		htmlExt = ".html"
+
+		command, output, profileName string
+
+		file *os.File
+
+		err error
+	)
+	glog.Info("getting simcraft sim...")
+	params := strings.Split(strings.Replace(mes.Content, "!simc ", "", 1), " ")
+	char := params[0]
+	if len(params) == 0 || char == "!simc" || char == "" {
+		glog.Infof("Command is incorrect: %s", mes.Content)
+		if err = sendMessage(s, mes.ChannelID, m.ErrorUser); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+		return
+	}
+
+	profileName = fmt.Sprintf("%s_%d", mes.Author.Username, time.Now().Unix())
+	profileFilePath := fmt.Sprintf("/tmp/%s%s", profileName, simcExt)
+	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
+	resultsFilePath := "/tmp/" + resultsFileName
+	realm := strings.Replace(o.GuildRealm, " ", "%20", -1)
+	command = fmt.Sprintf(o.SimcImport, realm, char, profileFilePath)
+	// for _, p := range params {
+	// 	args := strings.Split(p, "=")
+	// 	if len(args) != 2 {
+	// 		continue
+	// 	}
+	// 	switch args[0] {
+	// 	case "armory":
+	// 		if args[1] == "no" {
+	// 			isImported = true
+	// 		} else {
+	// 			strings.Replace(args[1], "_", "%20", -1)
+	// 			profile = args[0] + "=" + args[1]
+	// 		}
+	// 	default:
+	// 		command += " " + p
+	// 	}
+	// }
+	glog.Info(command)
+
+	if err = sendMessage(s, mes.ChannelID, fmt.Sprintf(m.SimcArmory, char)); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
+
+	if err = ConnectToServer(o.SSHUser, o.SSHAddress); err != nil {
+		glog.Errorf("Unable to connect to SSH: %s", err)
+		return
+	}
+	defer SSHConn.Close()
+	defer SFTPConn.Close()
+
+	output, err = ExecuteCommand(command)
+	glog.Info(output)
 	if err != nil {
-		sendMessage(s, m.ChannelID, err.Error())
+		glog.Error(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.ErrorUser); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
+		return
+	}
+	glog.Info("Created the user profile from Armory")
+	if err = sendMessage(s, mes.ChannelID, m.SimcImportSuccess); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
+
+	command = fmt.Sprintf(o.SimcWithStats, profileFilePath, resultsFilePath)
+
+	output, err = ExecuteCommand(command)
+	glog.Info(output)
+	if err != nil {
+		glog.Error(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.ErrorServer); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
+		return
+	}
+	glog.Info("Created the simulation")
+
+	if err = DownloadFile(resultsFilePath, resultsFilePath); err != nil {
+		glog.Error(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.ErrorServer); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
+		return
+	}
+	glog.Info("Downloaded the results")
+
+	if file, err = os.Open(resultsFilePath); err != nil {
+		glog.Error(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.ErrorServer); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
+		return
+	}
+
+	if _, err = s.ChannelFileSendWithMessage(
+		mes.ChannelID,
+		fmt.Sprintf("<@%s>", mes.Author.ID),
+		mes.Author.ID+htmlExt,
+		file,
+	); err != nil {
+		glog.Error(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.ErrorServer); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
+	}
+	glog.Info("Sent the file to the user")
+}
+
+func queueReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("getting realm name string...")
+	realmString := GetRealmName(mes.Content, "!queue")
+	glog.Infof("getting queue status of %s and sending it...", realmString)
+	if realmQueue, err := GetRealmQueueStatus(realmString); err != nil {
+		glog.Errorf("Unable to get the realm queue status: %s", err)
 	} else if realmQueue {
-		err := sendMessage(s, m.ChannelID, RealmHasQueue)
-		logOnErr(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.RealmQueue); sErr != nil {
+			glog.Error(sErr)
+		}
 	} else {
-		err := sendMessage(s, m.ChannelID, RealmHasNoQueue)
-		logOnErr(err)
+		if sErr := sendMessage(s, mes.ChannelID, m.RealmNoQueue); sErr != nil {
+			glog.Error(sErr)
+		}
 	}
 }
 
-func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("getting parametes string slice...")
+func guildMembersReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("getting parametes string slice...")
 	var parameters []string
-	realmString := GuildRealm
-	guildNameString := GuildName
-	paramString := strings.TrimPrefix(m.Content, "!guildmembers")
+	paramString := strings.TrimPrefix(mes.Content, "!guildmembers")
 	paramString = strings.TrimPrefix(paramString, " ")
 	if paramString != "" {
 		parameters = strings.Split(paramString, " ")
-		logInfo("paramString:", paramString, "parameters len:", len(parameters))
+		glog.Info("paramString:", paramString, "parameters len:", len(parameters))
 	}
-	logInfo("getting guild members list and sending it...")
-	guildMembersInfo, err := GetGuildMembers(realmString, guildNameString, parameters)
+	glog.Info("getting guild members list and sending it...")
+	guildMembersInfo, err := GetGuildMembers(o.GuildRealm, o.GuildName, parameters)
 	if err != nil {
-		sendMessage(s, m.ChannelID, err.Error())
+		glog.Errorf("Unable to get guild members: %s", err)
 		return
 	}
 	tab := fmttab.New("Список согильдейцев", fmttab.BorderDouble, nil)
@@ -391,21 +532,19 @@ func guildMembersReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"Армори":        member["Link"],
 		})
 	}
-	err = sendMessage(s, m.ChannelID, "```"+tab.String()+"```")
-	logInfo(len(tab.String()))
-	logOnErr(err)
+	if err = sendMessage(s, mes.ChannelID, "```"+tab.String()+"```"); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 }
 
-func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("getting parametes string slice...")
-	realmString := GuildRealm
-	guildNameString := GuildName
-	paramString := strings.TrimPrefix(m.Content, "!guildprofs")
+func guildProfsReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("getting parametes string slice...")
+	paramString := strings.TrimPrefix(mes.Content, "!guildprofs")
 	paramString = strings.TrimPrefix(paramString, " ")
-	logInfo("getting guild profs list and sending it...")
-	guildProfsInfo, err := GetGuildProfs(realmString, guildNameString, paramString)
+	glog.Info("getting guild profs list and sending it...")
+	guildProfsInfo, err := GetGuildProfs(o.GuildRealm, o.GuildName, paramString)
 	if err != nil {
-		sendMessage(s, m.ChannelID, err.Error())
+		glog.Errorf("Unable to get guild professions: %s", err)
 		return
 	}
 	tab := fmttab.New("Список профессий в гильдии", fmttab.BorderDouble, nil)
@@ -423,21 +562,23 @@ func guildProfsReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"Уровень 2 профы": member["SecondProfLevel"],
 		})
 	}
-	err = sendMessage(s, m.ChannelID, "```"+tab.String()+"```")
-	logOnErr(err)
+	if err = sendMessage(s, mes.ChannelID, "```"+tab.String()+"```"); err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 }
 
-func realmInfoReporter(s *discordgo.Session, m *discordgo.MessageCreate) {
-	logInfo("getting realm name string...")
-	realmString := GetRealmName(m.Content, "!realminfo")
-	logInfo(realmString)
-	logInfo("getting realm info and sending it...")
+func realmInfoReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	glog.Info("getting realm name string...")
+	realmString := GetRealmName(mes.Content, "!realminfo")
+	glog.Info(realmString)
+	glog.Info("getting realm info and sending it...")
 	realmInfo, err := GetRealmInfo(realmString)
 	if err != nil {
-		sendMessage(s, m.ChannelID, err.Error())
+		glog.Errorf("Unable to get guild info: %s", err)
 	} else {
-		err := sendMessage(s, m.ChannelID, realmInfo)
-		logOnErr(err)
+		if sErr := sendMessage(s, mes.ChannelID, realmInfo); sErr != nil {
+			glog.Errorf("Unable to send the message: %s", sErr)
+		}
 	}
 }
 
@@ -460,8 +601,7 @@ func compareMesArrays(a, b []*discordgo.Message) bool {
 }
 
 func timeIsAllowed() bool {
-	location, err := time.LoadLocation(Timezone)
-	panicOnErr(err)
+	location, _ := time.LoadLocation(o.GuildTimezone)
 	now := time.Now().In(location)
 	hour := now.Hour()
 	weekday := now.Weekday()
@@ -469,19 +609,19 @@ func timeIsAllowed() bool {
 	// saturday has raids and is a holiday
 	case time.Saturday:
 		if !(hour >= 2 && hour <= 10 || hour >= 20 && hour <= 23) {
-			logInfo("Saturday spam :) time now:", now.String())
+			glog.Info("Saturday spam :) time now:", now.String())
 			return true
 		}
 	// sunday
 	case time.Sunday:
 		if !(hour >= 2 && hour <= 8) {
-			logInfo("Sunday spam :) time now:", now.String())
+			glog.Info("Sunday spam :) time now:", now.String())
 			return true
 		}
 	// work days
 	default:
 		if !(hour >= 2 && hour <= 8 || hour >= 20 && hour <= 23) {
-			logInfo("Workday spam :) time now:", now.String())
+			glog.Info("Workday spam :) time now:", now.String())
 			return true
 		}
 	}

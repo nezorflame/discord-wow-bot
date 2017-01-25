@@ -1,43 +1,33 @@
 package main
 
 import (
-    "encoding/json"
+	"encoding/json"
 )
 
-func (r *Realms) getRealmsFromJSON(body *[]byte) error {
-    err := json.Unmarshal(*body, r)
-    panicOnErr(err)
-    return err
-}
-
-func (gi *GuildInfo) unmarshal(body *[]byte) (error) {
-    err := json.Unmarshal(*body, gi)
-    panicOnErr(err)
-    return err
+func (gi *GuildInfo) unmarshal(body *[]byte) error {
+	return json.Unmarshal(*body, gi)
 }
 
 func (gi *GuildInfo) marshal() ([]byte, error) {
-    body, err := json.Marshal(&gi)
-    panicOnErr(err)
-    return body, err
+	return json.Marshal(&gi)
 }
 
-func getCharacterFromJSON(body *[]byte) (*Character, error) {
-    c := new(Character)
-    err := json.Unmarshal(*body, c)
-    panicOnErr(err)
-    return c, err
+func (r *Realms) unmarshal(body *[]byte) error {
+	return json.Unmarshal(*body, r)
 }
 
-func (i *Item) getItemFromJSON(body *[]byte) error {
-    err := json.Unmarshal(*body, i)
-    panicOnErr(err)
-    return err
+func (c *Character) unmarshal(body *[]byte) error {
+	return json.Unmarshal(*body, c)
 }
 
-func getURLFromJSON(body *[]byte) (*string, error) {
-    apiResponse := new(googlAPIResponse)
-    err := json.Unmarshal(*body, apiResponse)
-    panicOnErr(err)
-    return &apiResponse.ID, err
+func (i *Item) unmarshal(body *[]byte) error {
+	return json.Unmarshal(*body, i)
+}
+
+func getURLFromJSON(body *[]byte) (apiResponseID string, err error) {
+	apiResponse := new(googlAPIResponse)
+	if err = json.Unmarshal(*body, apiResponse); err != nil {
+		apiResponseID = apiResponse.ID
+	}
+	return
 }

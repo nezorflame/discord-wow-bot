@@ -2,59 +2,53 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/golang/glog"
 )
 
 var (
-	db    *bolt.DB
-	today string
+	db *bolt.DB
+
+	today, yesterday string
 )
 
-func logOnError(err error) {
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func panicOnError(err error) {
-	if err != nil {
-		log.Panicln(err)
-	}
-}
-
-// Init initializes DB
-func Init() {
+// InitDB initializes DB
+func InitDB() {
 	// Open the my.db data file in your current directory.
 	// It will be created if it doesn't exist.
 	var err error
 	today = getStringDateFromToday(0)
-	yesterday := getStringDateFromToday(-1)
-	log.Printf("Initiating bolt connection... Current bucket name is %s\n", today)
-	db, err = bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	panicOnError(err)
-	err = createBucket("Items")
-	panicOnError(err)
-	err = createBucket(today)
-	panicOnError(err)
-	err = deleteBucket(yesterday)
-	logOnError(err)
+	yesterday = getStringDateFromToday(-1)
+	glog.Infof("Initiating bolt connection... Current bucket name is %s\n", today)
+	if db, err = bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second}); err != nil {
+		glog.Fatalf("Unable to open db: %s", err)
+	}
+	if err = createBucket("Items"); err != nil {
+		glog.Fatalf("Unable to create bucket Items: %s", err)
+	}
+	if err = createBucket(today); err != nil {
+		glog.Fatalf("Unable to create bucket %s: %s", today, err)
+	}
+	if err = deleteBucket(yesterday); err != nil && err.Error() != "bucket not found" {
+		glog.Fatalf("Unable to delete bucket %s: %s", yesterday, err)
+	}
 }
 
-// Close closes the connection
-func Close() {
+// CloseDB closes the connection
+func CloseDB() {
 	db.Close()
+	glog.Flush()
 }
 
-// Watcher runs on schedule
-func Watcher() {
+// DBWatcher runs on schedule
+func DBWatcher() {
 	for {
 		yesterday := getStringDateFromToday(-1)
 		if today == yesterday {
-			Close()
-			Init()
+			CloseDB()
+			InitDB()
 		}
 		time.Sleep(5 * time.Minute)
 	}

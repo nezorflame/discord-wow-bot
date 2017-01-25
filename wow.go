@@ -3,19 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-)
-
-var (
-	// Logger is public for tests
-	wowAPIToken    string
-	googleAPIToken string
-	locale         string
-	region         string
 )
 
 var (
@@ -32,12 +22,7 @@ func inTimeSpan(start, end, check time.Time) bool {
 }
 
 // InitializeWoWAPI - function for initializing WoW API
-func InitializeWoWAPI(wowToken, googleToken *string) {
-	Logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
-	wowAPIToken = *wowToken
-	googleAPIToken = *googleToken
-	locale = Locale
-	region = Region
+func InitializeWoWAPI() {
 	// TODO: Rework to WoW API structures from response
 	classes = map[int]string{
 		1:  "Воин",
@@ -155,10 +140,9 @@ func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
 	}
 	for _, n := range *gNews {
 		item := n.ItemInfo
-		isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 895 && item.ReqLevel == 110
+		isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
 		if isLegendary {
-			logInfo(n.EventTime, n.Character, item.Name, item.ID)
-			message := fmt.Sprintf("Ура! %s слутал легендарку **%s**! Поздравляем! :smile: \n%s", n.Character, item.Name, item.Link)
+			message := fmt.Sprintf(m.Legendary, n.Character, item.Name, item.Link)
 			legendaries = append(legendaries, message)
 		}
 	}
@@ -242,7 +226,7 @@ func GetGuildProfs(realmName, guildName string, param string) ([]map[string]stri
 func GetRealmName(message string, command string) string {
 	commandString := strings.Replace(message, command, "", 1)
 	if commandString == "" {
-		return GuildRealm
+		return o.GuildRealm
 	}
 	return strings.TrimLeft(commandString, " ")
 }
@@ -251,7 +235,7 @@ func GetRealmName(message string, command string) string {
 func GetRealmAndGuildNames(message string, command string) (string, string, error) {
 	commandString := strings.Replace(message, command, "", 1)
 	if commandString == "" {
-		return GuildRealm, GuildName, nil
+		return o.GuildRealm, o.GuildName, nil
 	}
 	s := strings.Split(commandString, ", ")
 	if len(s) < 2 {
@@ -262,5 +246,5 @@ func GetRealmAndGuildNames(message string, command string) (string, string, erro
 
 // GetDefaultRealmAndGuildNames returns default realm and guild name strings
 func GetDefaultRealmAndGuildNames() (string, string) {
-	return GuildRealm, GuildName
+	return o.GuildRealm, o.GuildName
 }

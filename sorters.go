@@ -3,11 +3,13 @@ package main
 import (
 	"sort"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 // SortGuildNews - function for sorting the guild news by timestamp
 func (nl *NewsList) SortGuildNews() NewsList {
-	logInfo("sorting guild news by timestamp...")
+	glog.Info("sorting guild news by timestamp...")
 	gNewsTimeMap := make(map[float64]NewsList)
 	sortedNews := new(NewsList)
 	var keys []float64
@@ -25,7 +27,7 @@ func (nl *NewsList) SortGuildNews() NewsList {
 	for _, k := range keys {
 		for _, n := range gNewsTimeMap[k] {
 			*sortedNews = append(*sortedNews, n)
-			logInfo(n.Character, n.ItemInfo.Name, n.ItemInfo.Link, n.ItemInfo.Quality)
+			glog.Infof("%s %s %s %d", n.Character, n.ItemInfo.Name, n.ItemInfo.Link, n.ItemInfo.Quality)
 		}
 	}
 	return *sortedNews
@@ -33,7 +35,7 @@ func (nl *NewsList) SortGuildNews() NewsList {
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
-	logInfo("sorting guild members, count =", len(*ml))
+	glog.Info("sorting guild members, count =", len(*ml))
 	var gMembers MembersList
 	gMembers = sortGuildMembersByString(*ml, "name", "asc")
 	length := len(gMembers)
@@ -48,7 +50,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 		default:
 			s := strings.Split(p, "=")
 			if len(s) < 2 {
-				logInfo("Parameter", p, "is bad! Ignoring...")
+				glog.Info("Parameter", p, "is bad! Ignoring...")
 				continue
 			}
 			pName := s[0]
@@ -59,20 +61,20 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 			case "level", "ilvl":
 				gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
 			default:
-				logInfo("Unknown parameter", pName, "so skipping...")
+				glog.Info("Unknown parameter", pName, "so skipping...")
 			}
 		}
 	}
 	if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
 		gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
 		gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
-		logInfo("No sorting params, used only default sort order...")
+		glog.Info("No sorting params, used only default sort order...")
 	}
 	return gMembers[:length]
 }
 
 func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
-	logInfo("sorting guild members by string:", key, "and order:", order)
+	glog.Info("sorting guild members by string:", key, "and order:", order)
 	gMembersMap := make(map[string]MembersList)
 	var sortedMembers MembersList
 	var keys []string
@@ -87,7 +89,7 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
 		case "spec":
 			mKey = m.Member.Spec.Name
 		default:
-			logInfo("Unknown key: " + key + ". Aborting...")
+			glog.Info("Unknown key: " + key + ". Aborting...")
 			return ml
 		}
 		members := gMembersMap[mKey]
@@ -115,7 +117,7 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
 }
 
 func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
-	logInfo("sorting guild members by int:", key, "and order:", order)
+	glog.Info("sorting guild members by int:", key, "and order:", order)
 	gMembersMap := make(map[int]MembersList)
 	var sortedMembers MembersList
 	var keys []int
@@ -128,7 +130,7 @@ func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
 		case "ilvl":
 			k = m.Member.Items.AvgItemLvlEq
 		default:
-			logInfo("Unknown key: " + key + ". Aborting...")
+			glog.Info("Unknown key: " + key + ". Aborting...")
 			return ml
 		}
 		members := gMembersMap[k]
