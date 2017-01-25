@@ -13,11 +13,10 @@ chmod 644 ${HOME}/.ssh/heroku_id_rsa.pub
 echo "${HEROKU_PRIVATE_KEY}" > ${HOME}/.ssh/heroku_id_rsa
 chmod 600 ${HOME}/.ssh/heroku_id_rsa
 
-# Preload the known_hosts file  (see "version 2" below)
-
-# Start the SSH agent
+# Start the SSH agent and add host
 eval `ssh-agent -s`
 ssh-add ~/.ssh/heroku_id_rsa
+touch ssh-add ~/.ssh/known_hosts
 ssh-keygen -R 104.155.2.110
 
 # Copy config from the server
