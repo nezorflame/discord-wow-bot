@@ -73,6 +73,7 @@ type Messages struct {
 	GuildProfsList   string
 
 	SimcArmory        string
+	SimcArmoryError   string
 	SimcImport        string
 	SimcImportSuccess string
 	SimcProfile       string
@@ -173,6 +174,7 @@ func LoadConfig() {
 	m.GuildProfsList = viper.GetString("messages.guild_profs_list")
 
 	m.SimcArmory = viper.GetString("messages.simc_armory")
+	m.SimcArmoryError = viper.GetString("messages.simc_armory_error")
 	m.SimcImport = viper.GetString("messages.simc_import")
 	m.SimcImportSuccess = viper.GetString("messages.simc_import_success")
 	m.SimcProfile = viper.GetString("messages.simc_profile")

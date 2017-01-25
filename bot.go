@@ -11,6 +11,7 @@ import (
 
 	"github.com/arteev/fmttab"
 	"github.com/bwmarrin/discordgo"
+	"github.com/fiam/gounidecode/unidecode"
 	"github.com/golang/glog"
 )
 
@@ -368,6 +369,7 @@ func statusReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 }
 
 func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	const timeFormat = "20060102_150405"
 	var (
 		simcExt = ".simc"
 		htmlExt = ".html"
@@ -389,12 +391,15 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 		return
 	}
 
-	profileName = fmt.Sprintf("%s_%d", mes.Author.Username, time.Now().Unix())
+	location, _ := time.LoadLocation(o.GuildTimezone)
+	now := time.Now().In(location).Format(timeFormat)
+	profileName = fmt.Sprintf("%s_%s", char, now)
 	profileFilePath := fmt.Sprintf("/tmp/%s%s", profileName, simcExt)
 	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
 	resultsFilePath := "/tmp/" + resultsFileName
 	realm := strings.Replace(o.GuildRealm, " ", "%20", -1)
 	command = fmt.Sprintf(o.SimcImport, realm, char, profileFilePath)
+
 	// for _, p := range params {
 	// 	args := strings.Split(p, "=")
 	// 	if len(args) != 2 {
@@ -412,6 +417,7 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	// 		command += " " + p
 	// 	}
 	// }
+
 	glog.Info(command)
 
 	if err = sendMessage(s, mes.ChannelID, fmt.Sprintf(m.SimcArmory, char)); err != nil {
@@ -444,6 +450,13 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	output, err = ExecuteCommand(command)
 	glog.Info(output)
 	if err != nil {
+		if strings.Contains(output, "Character not found") {
+			glog.Error("Unable to find the character")
+			if sErr := sendMessage(s, mes.ChannelID, m.SimcArmoryError); sErr != nil {
+				glog.Errorf("Unable to send the message: %s", sErr)
+			}
+			return
+		}
 		glog.Error(err)
 		if sErr := sendMessage(s, mes.ChannelID, m.ErrorServer); sErr != nil {
 			glog.Errorf("Unable to send the message: %s", sErr)
@@ -472,7 +485,7 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	if _, err = s.ChannelFileSendWithMessage(
 		mes.ChannelID,
 		fmt.Sprintf("<@%s>", mes.Author.ID),
-		mes.Author.ID+htmlExt,
+		fmt.Sprintf("%s_%s%s", unidecode.Unidecode(char), now, htmlExt),
 		file,
 	); err != nil {
 		glog.Error(err)

@@ -39,6 +39,12 @@
 			"revisionTime": "2016-12-10T14:47:14Z"
 		},
 		{
+			"checksumSHA1": "g0jYqsZKE7rkfrRY5O3NZ5Yjs4g=",
+			"path": "github.com/fiam/gounidecode/unidecode",
+			"revision": "8deddbd03fec2c28969266e52f27b6fb22be1823",
+			"revisionTime": "2015-06-29T11:25:15Z"
+		},
+		{
 			"checksumSHA1": "hveFTNQ9YEyYRs6SWuXM+XU9qRI=",
 			"path": "github.com/fsnotify/fsnotify",
 			"revision": "fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197",
