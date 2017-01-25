@@ -18,6 +18,7 @@ echo '|1|nGa/epzYJei5Vohi6/wWqNsiobU=|Tih5nQX6aftXmv7wtVcBHpzK2ZQ= ecdsa-sha2-ni
 
 # Start the SSH agent and add host
 eval `ssh-agent -s`
+ssh-add ~/.ssh/heroku_id_rsa
 
 # Copy config from the server
 scp ${SSH_USER}@${SSH_ADDRESS}:~/config.toml .
