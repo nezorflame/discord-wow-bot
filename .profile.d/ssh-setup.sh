@@ -18,6 +18,7 @@ chmod 600 ${HOME}/.ssh/heroku_id_rsa
 # Start the SSH agent
 eval `ssh-agent -s`
 ssh-add ~/.ssh/heroku_id_rsa
+ssh-keygen -R 104.155.2.110
 
 # Copy config from the server
 scp ${SSH_USER}@${SSH_ADDRESS}:~/config.toml .
