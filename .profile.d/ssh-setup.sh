@@ -16,8 +16,9 @@ chmod 600 ${HOME}/.ssh/heroku_id_rsa
 # Start the SSH agent and add host
 eval `ssh-agent -s`
 ssh-add ~/.ssh/heroku_id_rsa
-touch ssh-add ~/.ssh/known_hosts
-ssh-keygen -R 104.155.2.110
+
+# Preload the known_hosts file
+echo '|1|nGa/epzYJei5Vohi6/wWqNsiobU=|Tih5nQX6aftXmv7wtVcBHpzK2ZQ= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJhx3I5S1scVvmtB9hkfv+tTdT759fUI899fvdjyF7gGq1Bb2xZ2K72gay/iS+a6zUoFw2GYp1dsSqooDhrWTA4=' > ${HOME}/.ssh/known_hosts
 
 # Copy config from the server
 scp ${SSH_USER}@${SSH_ADDRESS}:~/config.toml .
