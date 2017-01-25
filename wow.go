@@ -140,7 +140,7 @@ func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
 	}
 	for _, n := range *gNews {
 		item := n.ItemInfo
-		isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
+		isLegendary := item.Quality == 5 && item.ItemLevel >= 910
 		if isLegendary {
 			message := fmt.Sprintf(m.Legendary, n.Character, item.Name, item.Link)
 			legendaries = append(legendaries, message)
