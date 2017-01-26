@@ -104,7 +104,8 @@ func getProfShortLink(rSlug, cName, pName string) (string, error) {
 	return shortLink, nil
 }
 
-func getItemByID(itemID string) (item *Item, err error) {
+func getItemByIDFromAPI(id int) (item *Item, err error) {
+	itemID := strconv.Itoa(id)
 	itemJSON := Get("Items", itemID)
 	item = new(Item)
 	cached := true
@@ -114,6 +115,9 @@ func getItemByID(itemID string) (item *Item, err error) {
 		if err != nil {
 			glog.Info(err)
 			return
+		} else if itemJSON == nil {
+			err = errors.New("Null JSON! itemID = " + itemID + ", cached = " + strconv.FormatBool(cached))
+			return
 		}
 		err = Put("Items", itemID, itemJSON)
 		if err != nil {
@@ -122,9 +126,35 @@ func getItemByID(itemID string) (item *Item, err error) {
 		}
 		cached = false
 	}
-	if itemJSON == nil {
-		err = errors.New("Null JSON! itemID = " + itemID + ", cached = " + strconv.FormatBool(cached))
+	if err = item.unmarshal(&itemJSON); err != nil {
+		glog.Info(err)
 		return
+	}
+	item.Link = fmt.Sprintf(o.WowheadItemLink, itemID)
+	return
+}
+
+// TODO: Finish this
+func getItemByIDFromWoWDB(itemID string) (item *Item, err error) {
+	itemJSON := Get("Items", itemID)
+	item = new(Item)
+	cached := true
+	if itemJSON == nil {
+		apiLink := fmt.Sprintf(o.WoWDBItemLink, itemID)
+		itemJSON, err = GetJSONResponse(apiLink)
+		if err != nil {
+			glog.Info(err)
+			return
+		} else if itemJSON == nil {
+			err = errors.New("Null JSON! itemID = " + itemID + ", cached = " + strconv.FormatBool(cached))
+			return
+		}
+		err = Put("Items", itemID, itemJSON)
+		if err != nil {
+			glog.Info(err)
+			return
+		}
+		cached = false
 	}
 	if err = item.unmarshal(&itemJSON); err != nil {
 		glog.Info(err)

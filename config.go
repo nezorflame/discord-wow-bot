@@ -40,6 +40,8 @@ type Options struct {
 	APICharProfsLink    string
 	APIItemLink         string
 
+	WoWDBItemLink string
+
 	ArmoryCharLink string
 	ArmoryProfLink string
 }
@@ -118,6 +120,7 @@ func LoadConfig() {
 
 	// Links
 	o.WowheadItemLink = viper.GetString("wowhead_item")
+	o.WoWDBItemLink = viper.GetString("wowdb_item")
 	o.GoogleShortenerLink = viper.GetString("google_shortener")
 
 	// SimC

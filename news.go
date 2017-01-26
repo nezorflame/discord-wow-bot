@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +16,7 @@ func getGuildNews(realmName, guildName string) (*NewsList, error) {
 		return nil, err
 	}
 	gNews = gNews.refillNews()
-	gNews = gNews.SortGuildNews()
+	sort.Sort(gNews)
 	glog.Info("Got updated guild news")
 	return &gNews, nil
 }
@@ -36,7 +36,7 @@ func getGuildNewsList(guildRealm, guildName *string) (gNews NewsList, err error)
 		return
 	}
 	now := time.Now()
-	before := now.Add(time.Duration(-6 * time.Minute))
+	before := now.Add(time.Duration(-6 * 240 * time.Minute))
 	// Fill string valuables
 	gInfo.Side = factions[gInfo.SideInt]
 	for _, n := range gInfo.GuildNewsList {
@@ -73,7 +73,7 @@ func (nl *NewsList) refillNews() (guildNews NewsList) {
 
 func updateNews(newsrecord News) (news News) {
 	if newsrecord.Type == "itemLoot" {
-		item, err := getItemByID(strconv.Itoa(newsrecord.ItemID))
+		item, err := getItemByIDFromAPI(newsrecord.ItemID)
 		if err != nil {
 			glog.Info("updateCharacter(): unable to get item by its ID =", newsrecord.ItemID, ":", err)
 			return newsrecord

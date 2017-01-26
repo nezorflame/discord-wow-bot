@@ -7,30 +7,19 @@ import (
 	"github.com/golang/glog"
 )
 
-// SortGuildNews - function for sorting the guild news by timestamp
-func (nl *NewsList) SortGuildNews() NewsList {
-	glog.Info("sorting guild news by timestamp...")
-	gNewsTimeMap := make(map[float64]NewsList)
-	sortedNews := new(NewsList)
-	var keys []float64
-	for _, n := range *nl {
-		k := float64(n.Timestamp)
-		news := gNewsTimeMap[k]
-		if !news.checkNSliceForNews(n) {
-			gNewsTimeMap[k] = append(gNewsTimeMap[k], n)
-			if !checkFloatSliceForValue(keys, k) {
-				keys = append(keys, k)
-			}
-		}
-	}
-	sort.Float64s(keys)
-	for _, k := range keys {
-		for _, n := range gNewsTimeMap[k] {
-			*sortedNews = append(*sortedNews, n)
-			glog.Infof("%s %s %s %d", n.Character, n.ItemInfo.Name, n.ItemInfo.Link, n.ItemInfo.Quality)
-		}
-	}
-	return *sortedNews
+// Len - function which returns length
+func (nl NewsList) Len() int {
+	return len(nl)
+}
+
+// Less - function which returns if element i is less than j
+func (nl NewsList) Less(i, j int) bool {
+	return nl[i].Timestamp < nl[j].Timestamp
+}
+
+// Swap - function which swaps element i with j
+func (nl NewsList) Swap(i, j int) {
+	nl[i], nl[j] = nl[j], nl[i]
 }
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
