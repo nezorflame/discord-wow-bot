@@ -18,12 +18,12 @@ func getCharNews(realmName, charName string) (*NewsList, error) {
 	}
 	feed = feed.refillNews()
 	sort.Sort(feed)
-	glog.Info("Got updated character news")
+	// glog.Info("Got updated character news")
 	return &feed, nil
 }
 
 func getCharFeed(charRealm, charName *string) (feed NewsList, err error) {
-	glog.Info("getting character feed...")
+	// glog.Info("getting character feed...")
 	apiLink := fmt.Sprintf(o.APICharNewsLink, o.GuildRegion, strings.Replace(*charRealm, " ", "%20", -1),
 		strings.Replace(*charName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 	respJSON, err := GetJSONResponse(apiLink)
@@ -113,7 +113,7 @@ func (nl *NewsList) refillNews() (refilledNews NewsList) {
 		}(newsrecord)
 	}
 	wg.Wait()
-	glog.Info("News refilled")
+	// glog.Info("News refilled")
 	return
 }
 
