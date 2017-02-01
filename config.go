@@ -37,6 +37,7 @@ type Options struct {
 	APIGuildMembersLink string
 	APIGuildNewsLink    string
 	APICharItemsLink    string
+	APICharNewsLink     string
 	APICharProfsLink    string
 	APIItemLink         string
 
@@ -144,6 +145,7 @@ func LoadConfig() {
 	o.APIGuildMembersLink = viper.GetString("blizzard.api_guild_members")
 	o.APIGuildNewsLink = viper.GetString("blizzard.api_guild_news")
 	o.APICharItemsLink = viper.GetString("blizzard.api_char_items")
+	o.APICharNewsLink = viper.GetString("blizzard.api_char_news")
 	o.APICharProfsLink = viper.GetString("blizzard.api_char_profs")
 	o.APIItemLink = viper.GetString("blizzard.api_item")
 

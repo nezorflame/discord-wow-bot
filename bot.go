@@ -174,6 +174,7 @@ func RunGuildWatcher(s *discordgo.Session) {
 			glog.Errorf("Unable to get guild legendaries: %s", err)
 			goto Sleep
 		}
+		glog.Infof("Got %d legendaries", len(messages))
 		for _, message := range messages {
 			if _, ok := legendaries[message]; !ok {
 				if err = sendMessage(s, o.GeneralChannelID, message); err != nil {

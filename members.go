@@ -15,15 +15,22 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 	}
 	gMembers := gInfo.GuildMembersList
 	if !cached {
-		glog.Info("Got", len(gMembers), "guild members from API. Filling the gaps...")
+		glog.Infof("Got %d guild members from API. Filling the gaps...", len(gMembers))
 		gMembers = gMembers.refillMembers()
 		glog.Info("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
 		giJSON, err := gInfo.marshal()
+		if err != nil {
+			glog.Errorf("Unable to marshal guild info: %s", err)
+			return nil, err
+		}
 		err = Put("Main", o.Bucket, giJSON)
-		glog.Error(err)
+		if err != nil {
+			glog.Errorf("Unable to save guild info in DB: %s", err)
+			return nil, err
+		}
 	} else {
-		glog.Info("Got", len(gMembers), "guild members from cache")
+		glog.Infof("Got %d guild members from cache", len(gMembers))
 	}
 	gMembers = gMembers.SortGuildMembers(params)
 	glog.Info("Sorted guild members")
@@ -72,7 +79,7 @@ func (ml *MembersList) getAdditionalMembers() error {
 				return err
 			}
 			for _, member := range gi.GuildMembersList {
-				if member.Member.Name == character {
+				if member.Char.Name == character {
 					*ml = append(*ml, member)
 				}
 			}
@@ -81,52 +88,53 @@ func (ml *MembersList) getAdditionalMembers() error {
 	return nil
 }
 
-func (ml *MembersList) refillMembers() (guildMembers MembersList) {
+func (ml *MembersList) refillMembers() (refilledMembers MembersList) {
 	var wg sync.WaitGroup
 	wg.Add(len(*ml))
-	for _, m := range *ml {
-		go func(m GuildMember) {
+	for _, member := range *ml {
+		go func(gm GuildMember) {
 			defer wg.Done()
-			gMember := updateCharacter(m)
-			guildMembers = append(guildMembers, gMember)
-		}(m)
+			char := updateCharacter(&gm)
+			refilledMembers = append(refilledMembers, char)
+		}(member)
 	}
-	glog.Info("Members refilled")
 	wg.Wait()
+	glog.Info("Members refilled")
 	return
 }
 
-func updateCharacter(member GuildMember) (m GuildMember) {
-	var items *Items
-	var profs *Professions
-	var err error
-	m.Member = member.Member
-	m.Rank = member.Rank
-	m.Member.Class = classes[m.Member.ClassInt]
-	m.Member.Gender = genders[m.Member.GenderInt]
-	m.Member.Race = races[m.Member.RaceInt]
-	m.Member.RealmSlug, err = getRealmSlugByName(&m.Member.Realm)
+func updateCharacter(member *GuildMember) (gm GuildMember) {
+	var (
+		items *Items
+		profs *Professions
+		err   error
+	)
+	gm = *member
+	gm.Char.Class = classes[gm.Char.ClassInt]
+	gm.Char.Gender = genders[gm.Char.GenderInt]
+	gm.Char.Race = races[gm.Char.RaceInt]
+	gm.Char.RealmSlug, err = getRealmSlugByName(gm.Char.Realm)
 	if err != nil {
-		glog.Info("updateCharacter(): unable to get realm slug:", err)
-		return member
+		glog.Errorf("updateCharacter(): unable to get realm slug: %s", err)
+		return
 	}
-	shortLink, err := getArmoryLink(m.Member.RealmSlug, m.Member.Name)
+	shortLink, err := getArmoryLink(gm.Char.RealmSlug, gm.Char.Name)
 	if err != nil {
-		glog.Info("updateCharacter(): unable to get Armory link:", err)
-		return member
+		glog.Errorf("updateCharacter(): unable to get Armory link: %s", err)
+		return
 	}
-	m.Member.Link = shortLink
-	items, err = getCharacterItems(&m.Member.Realm, &m.Member.Name)
+	gm.Char.Link = shortLink
+	items, err = getCharacterItems(&gm.Char.Realm, &gm.Char.Name)
 	if err != nil {
-		glog.Info("updateCharacter(): unable to get items:", err)
-		return member
+		glog.Errorf("updateCharacter(): unable to get items: %s", err)
+		return
 	}
-	m.Member.Items = *items
-	profs, err = getCharacterProfessions(&m.Member.Realm, &m.Member.Name)
+	gm.Char.Items = *items
+	profs, err = getCharacterProfessions(&gm.Char.Realm, &gm.Char.Name)
 	if err != nil {
-		glog.Info("updateCharacter(): unable to get profs:", err)
-		return member
+		glog.Errorf("updateCharacter(): unable to get profs: %s", err)
+		return
 	}
-	m.Member.Professions = *profs
+	gm.Char.Professions = *profs
 	return
 }

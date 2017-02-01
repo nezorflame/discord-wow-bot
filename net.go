@@ -10,12 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/pkg/sftp"
-
-	"sync"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -27,7 +26,7 @@ var (
 	SFTPConn *sftp.Client
 )
 
-// GetJSONResponse - function for getting the GET request response in form of JSON
+// GetJSONResponse - synced function for getting the GET request response in form of JSON
 func GetJSONResponse(url string) ([]byte, error) {
 	r, err := http.Get(url)
 	if err != nil {
@@ -45,6 +44,7 @@ func GetJSONResponse(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	time.Sleep(10 * time.Millisecond)
 	return body, nil
 }
 

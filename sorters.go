@@ -24,7 +24,7 @@ func (nl NewsList) Swap(i, j int) {
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
-	glog.Info("sorting guild members, count =", len(*ml))
+	glog.Infof("sorting guild members, count = %d", len(*ml))
 	var gMembers MembersList
 	gMembers = sortGuildMembersByString(*ml, "name", "asc")
 	length := len(gMembers)
@@ -39,7 +39,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 		default:
 			s := strings.Split(p, "=")
 			if len(s) < 2 {
-				glog.Info("Parameter", p, "is bad! Ignoring...")
+				glog.Infof("Parameter '%s' is bad! Ignoring...", p)
 				continue
 			}
 			pName := s[0]
@@ -50,7 +50,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 			case "level", "ilvl":
 				gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
 			default:
-				glog.Info("Unknown parameter", pName, "so skipping...")
+				glog.Infof("Unknown parameter '%s', so skipping...", pName)
 			}
 		}
 	}
@@ -63,27 +63,27 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 }
 
 func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
-	glog.Info("sorting guild members by string:", key, "and order:", order)
+	glog.Infof("sorting guild members by string '%s' and order '%s'", key, order)
 	gMembersMap := make(map[string]MembersList)
 	var sortedMembers MembersList
 	var keys []string
 	ascOrder := true
-	for _, m := range ml {
+	for _, gm := range ml {
 		var mKey string
 		switch key {
 		case "name":
-			mKey = m.Member.Name
+			mKey = gm.Char.Name
 		case "class":
-			mKey = m.Member.Class
+			mKey = gm.Char.Class
 		case "spec":
-			mKey = m.Member.Spec.Name
+			mKey = gm.Char.Spec.Name
 		default:
-			glog.Info("Unknown key: " + key + ". Aborting...")
+			glog.Infof("Unknown key '%s'. Aborting...", key)
 			return ml
 		}
 		members := gMembersMap[mKey]
-		if !members.checkMSliceForMember(m) {
-			gMembersMap[mKey] = append(gMembersMap[mKey], m)
+		if !members.checkMSliceForMember(gm) {
+			gMembersMap[mKey] = append(gMembersMap[mKey], gm)
 			if !checkStrSliceForValue(keys, mKey) {
 				keys = append(keys, mKey)
 			}
@@ -106,25 +106,25 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
 }
 
 func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
-	glog.Info("sorting guild members by int:", key, "and order:", order)
+	glog.Infof("sorting guild members by int '%s' and order '%s'", key, order)
 	gMembersMap := make(map[int]MembersList)
 	var sortedMembers MembersList
 	var keys []int
 	ascOrder := true
-	for _, m := range ml {
+	for _, gm := range ml {
 		var k int
 		switch key {
 		case "level":
-			k = m.Member.Level
+			k = gm.Char.Level
 		case "ilvl":
-			k = m.Member.Items.AvgItemLvlEq
+			k = gm.Char.Items.AvgItemLvlEq
 		default:
-			glog.Info("Unknown key: " + key + ". Aborting...")
+			glog.Infof("Unknown key '%s'. Aborting...", key)
 			return ml
 		}
 		members := gMembersMap[k]
-		if !members.checkMSliceForMember(m) {
-			gMembersMap[k] = append(gMembersMap[k], m)
+		if !members.checkMSliceForMember(gm) {
+			gMembersMap[k] = append(gMembersMap[k], gm)
 			if !checkIntSliceForValue(keys, k) {
 				keys = append(keys, k)
 			}
@@ -147,8 +147,8 @@ func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
 }
 
 func (ml *MembersList) checkMSliceForMember(member GuildMember) bool {
-	for _, m := range *ml {
-		if m.Member.Name == member.Member.Name {
+	for _, gm := range *ml {
+		if gm.Char.Name == member.Char.Name {
 			return true
 		}
 	}

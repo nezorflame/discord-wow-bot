@@ -179,13 +179,13 @@ func getRealmByName(realmName string) (Realm, error) {
 	return *new(Realm), errors.New("No such realm is present")
 }
 
-func getRealmSlugByName(realmName *string) (string, error) {
+func getRealmSlugByName(realmName string) (string, error) {
 	realms, err := getRealms()
 	if err != nil {
 		return "", err
 	}
 	for _, r := range *realms {
-		if strings.ToLower(r.Name) == strings.ToLower(*realmName) {
+		if strings.ToLower(r.Name) == strings.ToLower(realmName) {
 			return r.Slug, nil
 		}
 	}

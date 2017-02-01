@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -133,19 +134,37 @@ func GetRealmInfo(realmName string) (string, error) {
 
 // GetGuildLegendaries - function for getting the latest guild legendaries
 func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
-	var legendaries []string
-	gNews, err := getGuildNews(realmName, guildName)
+	var legendaries, params []string
+	gMembers, err := getGuildMembers(realmName, guildName, params)
 	if err != nil {
 		return nil, err
 	}
-	for _, n := range *gNews {
-		item := n.ItemInfo
-		isLegendary := item.Quality == 5 && item.ItemLevel >= 910
-		if isLegendary {
-			message := fmt.Sprintf(m.Legendary, n.Character, item.Name, item.Link)
-			legendaries = append(legendaries, message)
-		}
+	var wg sync.WaitGroup
+	wg.Add(len(*gMembers))
+	for _, member := range *gMembers {
+		go func(name string, lvl int) {
+			defer wg.Done()
+			if lvl < 110 {
+				return
+			}
+			cNews, err := getCharNews(realmName, name)
+			if err != nil {
+				return
+			}
+			for _, n := range *cNews {
+				if n.Type != "LOOT" && n.Type != "itemLoot" {
+					continue
+				}
+				item := n.ItemInfo
+				isLegendary := item.Quality == 5 && item.ItemLevel >= 910
+				if isLegendary {
+					message := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
+					legendaries = append(legendaries, message)
+				}
+			}
+		}(member.Char.Name, member.Char.Level)
 	}
+	wg.Wait()
 	return legendaries, nil
 }
 
@@ -156,18 +175,20 @@ func GetGuildMembers(realmName, guildName string, params []string) ([]map[string
 		return nil, err
 	}
 	var guildMembersList []map[string]string
-	for _, m := range *gMembers {
+	for _, gm := range *gMembers {
 		gMember := make(map[string]string)
-		gMember["Name"] = m.Member.Name
-		gMember["Level"] = strconv.Itoa(m.Member.Level)
-		gMember["Class"] = m.Member.Class
-		if specName := m.Member.Spec.Name; specName != "" {
+		gMember["Name"] = gm.Char.Name
+		gMember["Guild"] = gm.Char.Guild
+		gMember["Realm"] = gm.Char.GuildRealm
+		gMember["Level"] = strconv.Itoa(gm.Char.Level)
+		gMember["Class"] = gm.Char.Class
+		if specName := gm.Char.Spec.Name; specName != "" {
 			gMember["Spec"] = specName
 		} else {
 			gMember["Spec"] = "Нет инфы"
 		}
-		gMember["ItemLevel"] = strconv.Itoa(m.Member.Items.AvgItemLvlEq)
-		gMember["Link"] = m.Member.Link
+		gMember["ItemLevel"] = strconv.Itoa(gm.Char.Items.AvgItemLvlEq)
+		gMember["Link"] = gm.Char.Link
 		guildMembersList = append(guildMembersList, gMember)
 	}
 	return guildMembersList, nil
@@ -189,28 +210,28 @@ func GetGuildProfs(realmName, guildName string, param string) ([]map[string]stri
 		profName = s[1]
 	}
 	var guildProfsList []map[string]string
-	for _, m := range *gMembers {
+	for _, gm := range *gMembers {
 		gMember := make(map[string]string)
-		gMember["Name"] = m.Member.Name
-		switch len(m.Member.Professions.PrimaryProfs) {
+		gMember["Name"] = gm.Char.Name
+		switch len(gm.Char.Professions.PrimaryProfs) {
 		case 0:
 			gMember["FirstProf"] = "Нет"
 			gMember["FirstProfLevel"] = "-"
 			gMember["SecondProf"] = "Нет"
 			gMember["SecondProfLevel"] = "-"
 		case 1:
-			gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
-			gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) +
-				" | " + m.Member.Professions.PrimaryProfs[0].Link
+			gMember["FirstProf"] = gm.Char.Professions.PrimaryProfs[0].Name
+			gMember["FirstProfLevel"] = strconv.Itoa(gm.Char.Professions.PrimaryProfs[0].Rank) +
+				" | " + gm.Char.Professions.PrimaryProfs[0].Link
 			gMember["SecondProf"] = "Нет"
 			gMember["SecondProfLevel"] = "-"
 		case 2:
-			gMember["FirstProf"] = m.Member.Professions.PrimaryProfs[0].Name
-			gMember["FirstProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[0].Rank) +
-				" | " + m.Member.Professions.PrimaryProfs[0].Link
-			gMember["SecondProf"] = m.Member.Professions.PrimaryProfs[1].Name
-			gMember["SecondProfLevel"] = strconv.Itoa(m.Member.Professions.PrimaryProfs[1].Rank) +
-				" | " + m.Member.Professions.PrimaryProfs[1].Link
+			gMember["FirstProf"] = gm.Char.Professions.PrimaryProfs[0].Name
+			gMember["FirstProfLevel"] = strconv.Itoa(gm.Char.Professions.PrimaryProfs[0].Rank) +
+				" | " + gm.Char.Professions.PrimaryProfs[0].Link
+			gMember["SecondProf"] = gm.Char.Professions.PrimaryProfs[1].Name
+			gMember["SecondProfLevel"] = strconv.Itoa(gm.Char.Professions.PrimaryProfs[1].Rank) +
+				" | " + gm.Char.Professions.PrimaryProfs[1].Link
 		}
 		if profName == "" || gMember["FirstProf"] == profName || gMember["SecondProf"] == profName {
 			guildProfsList = append(guildProfsList, gMember)
