@@ -24,7 +24,7 @@ func (nl NewsList) Swap(i, j int) {
 
 // SortGuildMembers - function for sorting the guild members by a slice of params
 func (ml *MembersList) SortGuildMembers(params []string) MembersList {
-	glog.Infof("sorting guild members, count = %d", len(*ml))
+	// glog.Infof("sorting guild members, count = %d", len(*ml))
 	var gMembers MembersList
 	gMembers = sortGuildMembersByString(*ml, "name", "asc")
 	length := len(gMembers)
@@ -39,7 +39,7 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 		default:
 			s := strings.Split(p, "=")
 			if len(s) < 2 {
-				glog.Infof("Parameter '%s' is bad! Ignoring...", p)
+				// glog.Infof("Parameter '%s' is bad! Ignoring...", p)
 				continue
 			}
 			pName := s[0]
@@ -50,20 +50,20 @@ func (ml *MembersList) SortGuildMembers(params []string) MembersList {
 			case "level", "ilvl":
 				gMembers = sortGuildMembersByInt(gMembers, pName, sOrder)
 			default:
-				glog.Infof("Unknown parameter '%s', so skipping...", pName)
+				// glog.Infof("Unknown parameter '%s', so skipping...", pName)
 			}
 		}
 	}
 	if len(params) == 0 || params[0] == "" || strings.HasPrefix(params[0], "top") {
 		gMembers = sortGuildMembersByInt(gMembers, "level", "desc")
 		gMembers = sortGuildMembersByInt(gMembers, "ilvl", "desc")
-		glog.Info("No sorting params, used only default sort order...")
+		// glog.Info("No sorting params, used only default sort order...")
 	}
 	return gMembers[:length]
 }
 
 func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
-	glog.Infof("sorting guild members by string '%s' and order '%s'", key, order)
+	// glog.Infof("sorting guild members by string '%s' and order '%s'", key, order)
 	gMembersMap := make(map[string]MembersList)
 	var sortedMembers MembersList
 	var keys []string
@@ -106,7 +106,7 @@ func sortGuildMembersByString(ml MembersList, key, order string) MembersList {
 }
 
 func sortGuildMembersByInt(ml MembersList, key, order string) MembersList {
-	glog.Infof("sorting guild members by int '%s' and order '%s'", key, order)
+	// glog.Infof("sorting guild members by int '%s' and order '%s'", key, order)
 	gMembersMap := make(map[int]MembersList)
 	var sortedMembers MembersList
 	var keys []int

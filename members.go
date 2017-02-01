@@ -15,9 +15,9 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 	}
 	gMembers := gInfo.GuildMembersList
 	if !cached {
-		glog.Infof("Got %d guild members from API. Filling the gaps...", len(gMembers))
+		// glog.Infof("Got %d guild members from API. Filling the gaps...", len(gMembers))
 		gMembers = gMembers.refillMembers()
-		glog.Info("Saving guild members into cache...")
+		// glog.Info("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
 		giJSON, err := gInfo.marshal()
 		if err != nil {
@@ -30,15 +30,15 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 			return nil, err
 		}
 	} else {
-		glog.Infof("Got %d guild members from cache", len(gMembers))
+		// glog.Infof("Got %d guild members from cache", len(gMembers))
 	}
 	gMembers = gMembers.SortGuildMembers(params)
-	glog.Info("Sorted guild members")
+	// glog.Info("Sorted guild members")
 	return &gMembers, nil
 }
 
 func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, err error) {
-	glog.Info("getting main guild members...")
+	// glog.Info("getting main guild members...")
 	cached = true
 	membersJSON := Get("Main", o.Bucket)
 	if membersJSON == nil {
@@ -63,7 +63,7 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 }
 
 func (ml *MembersList) getAdditionalMembers() error {
-	glog.Info("getting additional guild members...")
+	// glog.Info("getting additional guild members...")
 	for realm, m := range addMembers {
 		for guild, character := range m {
 			apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(realm, " ", "%20", -1),

@@ -170,6 +170,7 @@ func RunGuildWatcher(s *discordgo.Session) {
 	)
 
 	for {
+		glog.Info("Getting guild legendaries...")
 		if messages, err = GetGuildLegendaries(o.GuildRealm, o.GuildName); err != nil {
 			glog.Errorf("Unable to get guild legendaries: %s", err)
 			goto Sleep
