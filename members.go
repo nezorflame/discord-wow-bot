@@ -15,7 +15,7 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 	}
 	gMembers := gInfo.GuildMembersList
 	if !cached {
-		// glog.Infof("Got %d guild members from API. Filling the gaps...", len(gMembers))
+		glog.Infof("Got %d guild members from API. Filling the gaps...", len(gMembers))
 		gMembers = gMembers.refillMembers()
 		// glog.Info("Saving guild members into cache...")
 		gInfo.GuildMembersList = gMembers
@@ -30,7 +30,7 @@ func getGuildMembers(realmName, guildName string, params []string) (*MembersList
 			return nil, err
 		}
 	} else {
-		// glog.Infof("Got %d guild members from cache", len(gMembers))
+		glog.Infof("Got %d guild members from cache", len(gMembers))
 	}
 	gMembers = gMembers.SortGuildMembers(params)
 	// glog.Info("Sorted guild members")
@@ -42,7 +42,7 @@ func getGuildInfo(guildRealm, guildName *string) (gInfo GuildInfo, cached bool, 
 	cached = true
 	membersJSON := Get("Main", o.Bucket)
 	if membersJSON == nil {
-		glog.Info("No cache is present, getting from API...")
+		// glog.Info("No cache is present, getting from API...")
 		cached = false
 		apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(*guildRealm, " ", "%20", -1),
 			strings.Replace(*guildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
@@ -99,7 +99,7 @@ func (ml *MembersList) refillMembers() (refilledMembers MembersList) {
 		}(member)
 	}
 	wg.Wait()
-	glog.Info("Members refilled")
+	// glog.Info("Members refilled")
 	return
 }
 
