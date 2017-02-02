@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -132,44 +131,24 @@ func GetRealmInfo(realmName string) (string, error) {
 	return realmInfo, nil
 }
 
-// GetGuildLegendaryMessages - function for getting the latest guild legendary messages
-func GetGuildLegendaryMessages(realmName, guildName string) (messages []string, err error) {
+// GetMaxLvlGuildMembers - function for getting the max leveled guild members
+func GetMaxLvlGuildMembers(realmName, guildName string) (members MembersList, err error) {
 	var (
-		gMembers *MembersList
 		params   []string
+		gMembers = new(MembersList)
 	)
-
+	// get all guild members
 	gMembers, err = getGuildMembers(realmName, guildName, params)
 	if err != nil {
 		return
 	}
-	var wg sync.WaitGroup
-	wg.Add(len(*gMembers))
-	for _, member := range *gMembers {
-		go func(name string, lvl int) {
-			defer wg.Done()
-			if lvl < 110 {
-				return
-			}
-			cNews, err := getCharNews(realmName, name)
-			if err != nil {
-				return
-			}
-			for _, n := range *cNews {
-				if n.Type != "LOOT" && n.Type != "itemLoot" {
-					continue
-				}
-				item := n.ItemInfo
-				isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
-				if isLegendary {
-					message := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
-					messages = append(messages, message)
-				}
-			}
-		}(member.Char.Name, member.Char.Level)
+	// taking only the max leveled ones
+	for _, gm := range *gMembers {
+		if gm.Char.Level == 110 {
+			members = append(members, gm)
+		}
 	}
-	wg.Wait()
-	return messages, nil
+	return
 }
 
 // GetGuildMembers - function for receiving a list of guild members

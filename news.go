@@ -13,7 +13,6 @@ import (
 func getCharNews(realmName, charName string) (*NewsList, error) {
 	feed, err := getCharFeed(&realmName, &charName)
 	if err != nil {
-		glog.Errorf("Unable to get character feed: %s", err)
 		return nil, err
 	}
 	feed = feed.refillNews()

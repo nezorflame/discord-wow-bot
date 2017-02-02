@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/arteev/fmttab"
@@ -14,10 +15,14 @@ import (
 	"github.com/golang/glog"
 )
 
-// Users - map of guild members
+// Common vars
 var (
 	BotID string
 	Users map[string]string
+
+	watcherWG    sync.WaitGroup
+	watcherMutex sync.RWMutex
+	legendaries  map[string][]*Item
 )
 
 // Start - function to start Discord bot
@@ -45,7 +50,8 @@ func Start() {
 	if err = session.Open(); err != nil {
 		glog.Fatalf("Unable to open the session: %s", err)
 	}
-	glog.Info("Starting guild watcher and spammer...")
+	glog.Info("Starting guild watcher...")
+	legendaries = make(map[string][]*Item)
 	go RunGuildWatcher(session)
 	glog.Info("Bot started")
 }
@@ -159,35 +165,81 @@ func setup(session *discordgo.Session) {
 	session.AddHandler(messageCreate)
 }
 
-// RunGuildWatcher - function for starting the guild news watcher
-// TODO: Very dirty, need to rewrite
+// RunGuildWatcher - function for the guild news watcher
 func RunGuildWatcher(s *discordgo.Session) {
 	var (
-		err      error
-		messages []string
-
-		check = make(map[string]bool)
+		err     error
+		members MembersList
 	)
 
+	if members, err = GetMaxLvlGuildMembers(o.GuildRealm, o.GuildName); err != nil {
+		glog.Errorf("Unable to get guild members: %s", err)
+		return
+	}
+	count := len(members)
+	glog.Infof("Got %d max leveled characters", count)
+	if count == 0 {
+		glog.Errorf("Members count is zero, exiting")
+		return
+	}
+	watcherWG.Add(count)
+	for _, gm := range members {
+		go charWatcher(s, gm.Char.Realm, gm.Char.Name)
+	}
+	watcherWG.Wait()
+	glog.Infof("All %d char watchers completed, rerunning main watcher", count)
+	RunGuildWatcher(s)
+}
+
+// should be run in a goroutine
+func charWatcher(s *discordgo.Session, realm, name string) {
+	startTime := time.Now()
 	for {
-		glog.Info("Getting guild legendaries...")
-		if messages, err = GetGuildLegendaryMessages(o.GuildRealm, o.GuildName); err != nil {
-			glog.Errorf("Unable to get guild legendaries: %s", err)
+		cNews, err := getCharNews(realm, name)
+		if err != nil {
+			glog.Errorf("Unable to get char feed: %s", err)
 			goto Sleep
 		}
-		glog.Infof("Got %d legendaries", len(messages))
-		for _, message := range messages {
-			if _, ok := check[message]; !ok {
-				if err = sendMessage(s, o.GeneralChannelID, message); err != nil {
+		for _, n := range *cNews {
+			item := n.ItemInfo
+			isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
+			if isLegendary && !checkItem(name, item.ID) {
+				msg := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
+				if err = sendMessage(s, o.GeneralChannelID, msg); err != nil {
 					glog.Errorf("Unable to send the message: %s", err)
 				}
-				// glog.Info(message)
-				check[message] = true
+				// glog.Info(msg)
+				addItem(name, &item)
 			}
+		}
+		if time.Since(startTime) >= time.Hour {
+			watcherWG.Done()
+			return
 		}
 	Sleep:
 		time.Sleep(5 * time.Minute)
 	}
+}
+
+func checkItem(char string, itemID int) (ok bool) {
+	watcherMutex.RLock()
+	defer watcherMutex.RUnlock()
+	if _, ok = legendaries[char]; !ok {
+		return
+	}
+	for _, i := range legendaries[char] {
+		if i.ID == itemID {
+			ok = true
+			break
+		}
+	}
+	return
+}
+
+func addItem(char string, item *Item) {
+	watcherMutex.Lock()
+	legendaries[char] = append(legendaries[char], item)
+	watcherMutex.Unlock()
 }
 
 // This function will be called (due to AddHandler above) every time a new
