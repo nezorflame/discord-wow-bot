@@ -163,8 +163,9 @@ func setup(session *discordgo.Session) {
 // TODO: Very dirty, need to rewrite
 func RunGuildWatcher(s *discordgo.Session) {
 	var (
-		err         error
-		messages    []string
+		err      error
+		messages []string
+
 		check = make(map[string]bool)
 	)
 
@@ -177,10 +178,10 @@ func RunGuildWatcher(s *discordgo.Session) {
 		glog.Infof("Got %d legendaries", len(messages))
 		for _, message := range messages {
 			if _, ok := check[message]; !ok {
-				// if err = sendMessage(s, o.GeneralChannelID, message); err != nil {
-				// 	glog.Errorf("Unable to send the message: %s", err)
-				// }
-				glog.Info(message)
+				if err = sendMessage(s, o.GeneralChannelID, message); err != nil {
+					glog.Errorf("Unable to send the message: %s", err)
+				}
+				// glog.Info(message)
 				check[message] = true
 			}
 		}
