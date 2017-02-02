@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"os"
 
 	"github.com/arteev/fmttab"
 	"github.com/bwmarrin/discordgo"
@@ -166,32 +165,32 @@ func RunGuildWatcher(s *discordgo.Session) {
 	var (
 		err         error
 		messages    []string
-		legendaries = make(map[string]bool)
+		check = make(map[string]bool)
 	)
 
 	for {
 		glog.Info("Getting guild legendaries...")
-		if messages, err = GetGuildLegendaries(o.GuildRealm, o.GuildName); err != nil {
+		if messages, err = GetGuildLegendaryMessages(o.GuildRealm, o.GuildName); err != nil {
 			glog.Errorf("Unable to get guild legendaries: %s", err)
 			goto Sleep
 		}
 		glog.Infof("Got %d legendaries", len(messages))
 		for _, message := range messages {
-			if _, ok := legendaries[message]; !ok {
-				if err = sendMessage(s, o.GeneralChannelID, message); err != nil {
-					glog.Errorf("Unable to send the message: %s", err)
-				}
-				// glog.Info(message)
-				legendaries[message] = true
+			if _, ok := check[message]; !ok {
+				// if err = sendMessage(s, o.GeneralChannelID, message); err != nil {
+				// 	glog.Errorf("Unable to send the message: %s", err)
+				// }
+				glog.Info(message)
+				check[message] = true
 			}
 		}
 	Sleep:
-		time.Sleep(5 * time.Minute)
+		time.Sleep(5 * time.Second)
 	}
 }
 
 // This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the autenticated bot has access to.
+// message is created on any channel that the authenticated bot has access to.
 func messageCreate(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	if mes.Author.ID == BotID {

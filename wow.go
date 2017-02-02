@@ -132,12 +132,16 @@ func GetRealmInfo(realmName string) (string, error) {
 	return realmInfo, nil
 }
 
-// GetGuildLegendaries - function for getting the latest guild legendaries
-func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
-	var legendaries, params []string
-	gMembers, err := getGuildMembers(realmName, guildName, params)
+// GetGuildLegendaryMessages - function for getting the latest guild legendary messages
+func GetGuildLegendaryMessages(realmName, guildName string) (messages []string, err error) {
+	var (
+		gMembers *MembersList
+		params   []string
+	)
+
+	gMembers, err = getGuildMembers(realmName, guildName, params)
 	if err != nil {
-		return nil, err
+		return
 	}
 	var wg sync.WaitGroup
 	wg.Add(len(*gMembers))
@@ -156,16 +160,16 @@ func GetGuildLegendaries(realmName, guildName string) ([]string, error) {
 					continue
 				}
 				item := n.ItemInfo
-				isLegendary := item.Quality == 5 && item.ItemLevel >= 910
+				isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
 				if isLegendary {
 					message := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
-					legendaries = append(legendaries, message)
+					messages = append(messages, message)
 				}
 			}
 		}(member.Char.Name, member.Char.Level)
 	}
 	wg.Wait()
-	return legendaries, nil
+	return messages, nil
 }
 
 // GetGuildMembers - function for receiving a list of guild members

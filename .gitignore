@@ -23,8 +23,9 @@ _testmain.go
 *.test
 *.prof
 
-# vscode Folders
+# vscode and idea folders
 .vscode/
+.idea/
 
 # ignore binaries and db
 discord-wow-bot
