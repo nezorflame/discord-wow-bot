@@ -186,7 +186,7 @@ func RunGuildWatcher(s *discordgo.Session) {
 			}
 		}
 	Sleep:
-		time.Sleep(5 * time.Second)
+		time.Sleep(5 * time.Minute)
 	}
 }
 
