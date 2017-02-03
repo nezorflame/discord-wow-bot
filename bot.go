@@ -177,7 +177,11 @@ func messageCreate(s *discordgo.Session, mes *discordgo.MessageCreate) {
 		statusReporter(s, mes)
 	}
 	if strings.HasPrefix(mes.Content, "!simc") {
-		simcReporter(s, mes)
+		if strings.HasPrefix(mes.Content, "!simcstats") {
+			simcReporter(s, mes, true)
+		} else {
+			simcReporter(s, mes, false)
+		}
 	}
 	if strings.HasPrefix(mes.Content, "!queue") {
 		queueReporter(s, mes)
@@ -345,7 +349,7 @@ func statusReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	}
 }
 
-func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
+func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate, withStats bool) {
 	const timeFormat = "20060102_150405"
 	var (
 		simcExt = ".simc"
@@ -420,7 +424,11 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 		glog.Errorf("Unable to send the message: %s", err)
 	}
 
-	command = fmt.Sprintf(o.SimcWithStats, profileFilePath, resultsFilePath)
+	if withStats {
+		command = fmt.Sprintf(o.SimcWithStats, profileFilePath, resultsFilePath)
+	} else {
+		command = fmt.Sprintf(o.SimcNoStats, profileFilePath, resultsFilePath)
+	}
 
 	output, err = ExecuteCommand(command)
 	// glog.Info(output)
