@@ -1,4 +1,5 @@
 # discord-wow-bot
+[![Build Status](https://travis-ci.org/nezorflame/discord-wow-bot.svg?branch=master)](https://travis-ci.org/nezorflame/discord-wow-bot)
 Discord bot app for WoW-connected info.
 
 To launch it, you have to pass some parameters:
