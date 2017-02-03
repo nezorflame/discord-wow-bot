@@ -362,9 +362,14 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate, withStats 
 		err error
 	)
 	glog.Info("getting simcraft sim...")
-	params := strings.Split(strings.Replace(mes.Content, "!simc ", "", 1), " ")
+	if withStats {
+		command = "!simcstats"
+	} else {
+		command = "!simc"
+	}
+	params := strings.Split(strings.Replace(mes.Content, command+" ", "", 1), " ")
 	char := params[0]
-	if len(params) == 0 || char == "!simc" || char == "" {
+	if len(params) == 0 || char == command || char == "" {
 		glog.Infof("Command is incorrect: %s", mes.Content)
 		if err = sendMessage(s, mes.ChannelID, m.ErrorUser); err != nil {
 			glog.Errorf("Unable to send the message: %s", err)
