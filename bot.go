@@ -52,7 +52,7 @@ func Start() {
 	}
 	glog.Info("Starting guild watcher...")
 	legendaries = make(map[string][]*Item)
-	go RunGuildWatcher(session)
+	go guildWatcher(session)
 	glog.Info("Bot started")
 }
 
@@ -163,83 +163,6 @@ func printMessageByID(s *discordgo.Session, chID string, mesID string) {
 func setup(session *discordgo.Session) {
 	glog.Info("Setting up event handlers...")
 	session.AddHandler(messageCreate)
-}
-
-// RunGuildWatcher - function for the guild news watcher
-func RunGuildWatcher(s *discordgo.Session) {
-	var (
-		err     error
-		members MembersList
-	)
-
-	if members, err = GetMaxLvlGuildMembers(o.GuildRealm, o.GuildName); err != nil {
-		glog.Errorf("Unable to get guild members: %s", err)
-		return
-	}
-	count := len(members)
-	glog.Infof("Got %d max leveled characters", count)
-	if count == 0 {
-		glog.Errorf("Members count is zero, exiting")
-		return
-	}
-	watcherWG.Add(count)
-	for _, gm := range members {
-		go charWatcher(s, gm.Char.Realm, gm.Char.Name)
-	}
-	watcherWG.Wait()
-	glog.Infof("All %d char watchers completed, rerunning main watcher", count)
-	RunGuildWatcher(s)
-}
-
-// should be run in a goroutine
-func charWatcher(s *discordgo.Session, realm, name string) {
-	startTime := time.Now()
-	for {
-		cNews, err := getCharNews(realm, name)
-		if err != nil {
-			glog.Errorf("Unable to get char feed: %s", err)
-			goto Sleep
-		}
-		for _, n := range *cNews {
-			item := n.ItemInfo
-			isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
-			if isLegendary && !checkItem(name, item.ID) {
-				msg := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
-				if err = sendMessage(s, o.GeneralChannelID, msg); err != nil {
-					glog.Errorf("Unable to send the message: %s", err)
-				}
-				// glog.Info(msg)
-				addItem(name, &item)
-			}
-		}
-		if time.Since(startTime) >= time.Hour {
-			watcherWG.Done()
-			return
-		}
-	Sleep:
-		time.Sleep(5 * time.Minute)
-	}
-}
-
-func checkItem(char string, itemID int) (ok bool) {
-	watcherMutex.RLock()
-	defer watcherMutex.RUnlock()
-	if _, ok = legendaries[char]; !ok {
-		return
-	}
-	for _, i := range legendaries[char] {
-		if i.ID == itemID {
-			ok = true
-			break
-		}
-	}
-	return
-}
-
-func addItem(char string, item *Item) {
-	watcherMutex.Lock()
-	legendaries[char] = append(legendaries[char], item)
-	watcherMutex.Unlock()
 }
 
 // This function will be called (due to AddHandler above) every time a new
@@ -453,7 +376,6 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	resultsFilePath := "/tmp/" + resultsFileName
 	realm := strings.Replace(o.GuildRealm, " ", "%20", -1)
 	command = fmt.Sprintf(o.SimcImport, realm, char, profileFilePath)
-
 	// for _, p := range params {
 	// 	args := strings.Split(p, "=")
 	// 	if len(args) != 2 {
@@ -471,7 +393,6 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	// 		command += " " + p
 	// 	}
 	// }
-
 	glog.Info(command)
 
 	if err = sendMessage(s, mes.ChannelID, fmt.Sprintf(m.SimcArmory, char)); err != nil {
@@ -486,7 +407,7 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	defer SFTPConn.Close()
 
 	output, err = ExecuteCommand(command)
-	glog.Info(output)
+	// glog.Info(output)
 	if err != nil {
 		glog.Error(err)
 		if sErr := sendMessage(s, mes.ChannelID, m.ErrorUser); sErr != nil {
@@ -502,7 +423,7 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	command = fmt.Sprintf(o.SimcWithStats, profileFilePath, resultsFilePath)
 
 	output, err = ExecuteCommand(command)
-	glog.Info(output)
+	// glog.Info(output)
 	if err != nil {
 		if strings.Contains(output, "Character not found") {
 			glog.Error("Unable to find the character")
@@ -649,6 +570,85 @@ func realmInfoReporter(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	}
 }
 
+func guildWatcher(s *discordgo.Session) {
+	var (
+		err     error
+		members MembersList
+	)
+
+	if members, err = GetMaxLvlGuildMembers(o.GuildRealm, o.GuildName); err != nil {
+		glog.Errorf("Unable to get guild members: %s", err)
+		return
+	}
+	count := len(members)
+	glog.Infof("Got %d max leveled characters", count)
+	if count == 0 {
+		glog.Errorf("Members count is zero, exiting")
+		return
+	}
+
+	watcherWG.Add(count)
+	for _, gm := range members {
+		go charWatcher(s, gm.Char.Realm, gm.Char.Name)
+	}
+	watcherWG.Wait()
+
+	glog.Infof("All %d char watchers completed, rerunning main watcher", count)
+	go guildWatcher(s)
+	return
+}
+
+func charWatcher(s *discordgo.Session, realm, name string) {
+	glog.Infof("Running char watcher for %s", name)
+	startTime := time.Now()
+	for {
+		cNews, err := getCharNews(realm, name)
+		if err != nil {
+			glog.Errorf("Unable to get char feed: %s", err)
+			goto Sleep
+		}
+		for _, n := range *cNews {
+			item := n.ItemInfo
+			isLegendary := item.Quality == 5 && item.Equippable && item.ItemLevel >= 910
+			if isLegendary && !checkItem(name, item.ID) {
+				msg := fmt.Sprintf(m.Legendary, name, item.Name, item.Link)
+				if err = sendMessage(s, o.GeneralChannelID, msg); err != nil {
+					glog.Errorf("Unable to send the message: %s", err)
+				}
+				// glog.Info(msg)
+				addItem(name, &item)
+			}
+		}
+		if time.Since(startTime) >= time.Hour {
+			watcherWG.Done()
+			return
+		}
+	Sleep:
+		time.Sleep(5 * time.Minute)
+	}
+}
+
+func checkItem(char string, itemID int) (ok bool) {
+	watcherMutex.RLock()
+	defer watcherMutex.RUnlock()
+	if _, ok = legendaries[char]; !ok {
+		return
+	}
+	for _, i := range legendaries[char] {
+		if i.ID == itemID {
+			ok = true
+			break
+		}
+	}
+	return
+}
+
+func addItem(char string, item *Item) {
+	watcherMutex.Lock()
+	legendaries[char] = append(legendaries[char], item)
+	watcherMutex.Unlock()
+}
+
 func containsUser(users []string, userID string) bool {
 	for _, u := range users {
 		if u == userID {
@@ -665,32 +665,4 @@ func compareMesArrays(a, b []*discordgo.Message) bool {
 		}
 	}
 	return true
-}
-
-func timeIsAllowed() bool {
-	location, _ := time.LoadLocation(o.GuildTimezone)
-	now := time.Now().In(location)
-	hour := now.Hour()
-	weekday := now.Weekday()
-	switch weekday {
-	// saturday has raids and is a holiday
-	case time.Saturday:
-		if !(hour >= 2 && hour <= 10 || hour >= 20 && hour <= 23) {
-			glog.Info("Saturday spam :) time now:", now.String())
-			return true
-		}
-	// sunday
-	case time.Sunday:
-		if !(hour >= 2 && hour <= 8) {
-			glog.Info("Sunday spam :) time now:", now.String())
-			return true
-		}
-	// work days
-	default:
-		if !(hour >= 2 && hour <= 8 || hour >= 20 && hour <= 23) {
-			glog.Info("Workday spam :) time now:", now.String())
-			return true
-		}
-	}
-	return false
 }
