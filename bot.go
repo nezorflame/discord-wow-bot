@@ -599,7 +599,7 @@ func guildWatcher(s *discordgo.Session) {
 }
 
 func charWatcher(s *discordgo.Session, realm, name string) {
-	glog.Infof("Running char watcher for %s", name)
+	// glog.Infof("Running char watcher for %s", name)
 	startTime := time.Now()
 	for {
 		cNews, err := getCharNews(realm, name)
