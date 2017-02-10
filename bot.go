@@ -434,6 +434,7 @@ func simcReporter(s *discordgo.Session, mes *discordgo.MessageCreate, withStats 
 	} else {
 		command = fmt.Sprintf(o.SimcNoStats, profileFilePath, resultsFilePath)
 	}
+	glog.Info(command)
 
 	output, err = ExecuteCommand(command)
 	// glog.Info(output)
