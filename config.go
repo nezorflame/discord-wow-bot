@@ -5,83 +5,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Options struct holds all the options
-type Options struct {
-	DiscordToken string
-	WoWToken     string
-	GoogleToken  string
-
-	SSHAddress string
-	SSHUser    string
-
-	SimcImport    string
-	SimcNoStats   string
-	SimcWithStats string
-
-	Bucket string
-
-	Admins []string
-
-	GeneralChannelID string
-
-	GuildRegion   string
-	GuildLocale   string
-	GuildTimezone string
-	GuildName     string
-	GuildRealm    string
-
-	WowheadItemLink     string
-	GoogleShortenerLink string
-
-	APIRealmsLink       string
-	APIGuildMembersLink string
-	APIGuildNewsLink    string
-	APICharItemsLink    string
-	APICharNewsLink     string
-	APICharProfsLink    string
-	APIItemLink         string
-
-	WoWDBItemLink string
-
-	ArmoryCharLink string
-	ArmoryProfLink string
-}
-
-// Messages struct holds all the bot message strings
-type Messages struct {
-	Help        string
-	Pong        string
-	Clean       string
-	ErrorUser   string
-	ErrorServer string
-
-	Legendary string
-
-	Boobies  string
-	JohnCena string
-	Relics   string
-	Godbook  string
-	Logs     string
-
-	Roll1   string
-	RollX   string
-	Roll100 string
-
-	RealmOn      string
-	RealmOff     string
-	RealmQueue   string
-	RealmNoQueue string
-
-	GuildMembersList string
-	GuildProfsList   string
-
-	SimcArmory        string
-	SimcArmoryError   string
-	SimcImport        string
-	SimcImportSuccess string
-	SimcProfile       string
-}
-
 var (
 	o = &Options{}
 	m = &Messages{}
@@ -140,6 +63,13 @@ func LoadConfig() {
 	o.GuildName = viper.GetString("guild.name")
 	o.GuildRealm = viper.GetString("guild.realm")
 
+	// WoW slices
+	o.WoWClasses = getMapWithNames("classes")
+	o.WoWGenders = getMapWithNames("genders")
+	o.WoWFactions = getMapWithNames("factions")
+	o.WoWRaces = getMapWithNames("races")
+	o.WoWProfessions = getMapWithNames("professions")
+
 	// Blizzard
 	o.APIRealmsLink = viper.GetString("blizzard.api_realms")
 	o.APIGuildMembersLink = viper.GetString("blizzard.api_guild_members")
@@ -183,4 +113,17 @@ func LoadConfig() {
 	m.SimcImport = viper.GetString("messages.simc_import")
 	m.SimcImportSuccess = viper.GetString("messages.simc_import_success")
 	m.SimcProfile = viper.GetString("messages.simc_profile")
+
+	glog.Info("Configuration is loaded successfully")
+}
+
+func getMapWithNames(confName string) (confMap map[int64]string) {
+	confMap = make(map[int64]string)
+	confSlice := viper.Get(confName).([]interface{})
+	for _, i := range confSlice {
+		id := i.(map[string]interface{})["id"].(int64)
+		name := i.(map[string]interface{})["name"].(string)
+		confMap[id] = name
+	}
+	return
 }
