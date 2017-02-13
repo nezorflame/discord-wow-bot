@@ -10,6 +10,8 @@ import (
 	"github.com/golang/glog"
 )
 
+var gnMtx sync.Mutex
+
 func getCharNews(realmName, charName string) (*NewsList, error) {
 	feed, err := getCharFeed(&realmName, &charName)
 	if err != nil {
@@ -62,7 +64,7 @@ func (nl *NewsList) refillNews() (refilledNews NewsList) {
 		go func(n News) {
 			defer wg.Done()
 			news := updateNews(&n)
-			refilledNews = append(refilledNews, news)
+			appendNews(&news, &refilledNews)
 		}(newsrecord)
 	}
 	wg.Wait()
@@ -81,4 +83,10 @@ func updateNews(newsrecord *News) (n News) {
 		n.ItemInfo = *item
 	}
 	return
+}
+
+func appendNews(n *News, nl *NewsList) {
+	gnMtx.Lock()
+	*nl = append(*nl, *n)
+	gnMtx.Unlock()
 }

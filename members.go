@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 )
 
-var refillMtx sync.Mutex
+var gmMtx sync.Mutex
 
 func getGuildMembers(realmName, guildName string, params []string) (*MembersList, error) {
 	gInfo, cached, err := getGuildInfo(&realmName, &guildName)
@@ -142,7 +142,7 @@ func updateCharacter(member *GuildMember) (gm GuildMember) {
 }
 
 func appendMember(gm *GuildMember, ml *MembersList) {
-	refillMtx.Lock()
+	gmMtx.Lock()
 	*ml = append(*ml, *gm)
-	refillMtx.Unlock()
+	gmMtx.Unlock()
 }
