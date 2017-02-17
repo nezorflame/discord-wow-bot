@@ -32,7 +32,7 @@ func (b *Bot) Start() {
 	}
 
 	glog.Info("Adding handlers...")
-	// setup(session)
+	b.Session.AddHandler(b.messageCreate)
 
 	glog.Info("Opening session...")
 	if err = b.Session.Open(); err != nil {
@@ -44,4 +44,13 @@ func (b *Bot) Start() {
 	// go guildWatcher(session)
 
 	glog.Info("Bot started")
+}
+
+// This function will be called (due to AddHandler above) every time a new
+// message is created on any channel that the authenticated bot has access to.
+func (b *Bot) messageCreate(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	// Ignore all messages created by the bot itself
+	if mes.Author.ID == b.ID {
+		return
+	}
 }
