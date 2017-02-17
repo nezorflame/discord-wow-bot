@@ -34,14 +34,6 @@ func LoadConfig() {
 		glog.Fatal("'bucket' must be present")
 	}
 
-	// SSH
-	if o.SSHAddress = viper.GetString("ssh.addr"); o.SSHAddress == "" {
-		glog.Fatal("'ssh.addr' must be present")
-	}
-	if o.SSHUser = viper.GetString("ssh.user"); o.SSHUser == "" {
-		glog.Fatal("'ssh.user' must be present")
-	}
-
 	// Links
 	o.WowheadItemLink = viper.GetString("wowhead_item")
 	o.WoWDBItemLink = viper.GetString("wowdb_item")
