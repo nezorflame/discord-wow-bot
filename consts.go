@@ -35,13 +35,13 @@ const (
 	Human
 	Orc
 	Dwarf
-	NElf
+	NightElf
 	Undead
 	Tauren
 	Gnome
 	Troll
 	Goblin
-	BElf
+	BloodElf
 	Draenei
 	Worgen          = 10 + iota
 	PandarenNeutral = 11 + iota
@@ -59,7 +59,7 @@ const (
 	Cooking        = 185
 	Mining         = 186
 	Tailoring      = 197
-	engineering    = 202
+	Engineering    = 202
 	Enchanting     = 333
 	Fishing        = 356
 	Skinning       = 393
