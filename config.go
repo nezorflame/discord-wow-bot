@@ -41,9 +41,10 @@ func LoadConfig() {
 
 	// SimC
 	o.SimcDir = viper.GetString("simc.dir")
-	o.SimcImport = viper.GetString("simc.import")
-	o.SimcNoStats = viper.GetString("simc.no_stats")
-	o.SimcWithStats = viper.GetString("simc.with_stats")
+	o.SimcCmd = viper.GetString("simc.cmd")
+	o.SimcArgsImport = viper.GetString("simc.args_import")
+	o.SimcArgsNoStats = viper.GetString("simc.args_no_stats")
+	o.SimcArgsWithStats = viper.GetString("simc.args_with_stats")
 
 	// Discord
 	o.Admins = viper.GetStringSlice("discord.admins")

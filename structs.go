@@ -14,10 +14,11 @@ type Options struct {
 	SSHAddress string
 	SSHUser    string
 
-	SimcDir       string
-	SimcImport    string
-	SimcNoStats   string
-	SimcWithStats string
+	SimcDir           string
+	SimcCmd           string
+	SimcArgsImport    string
+	SimcArgsNoStats   string
+	SimcArgsWithStats string
 
 	Bucket string
 

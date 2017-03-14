@@ -88,11 +88,11 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 		simcExt = ".simc"
 		htmlExt = ".html"
 
-		command, output, profileName string
+		command, argString, output, profileName string
 
+		args []string
 		file *os.File
-
-		err error
+		err  error
 	)
 	glog.Info("getting simcraft sim...")
 	if withStats {
@@ -117,7 +117,8 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
 	resultsFilePath := "/tmp/" + resultsFileName
 	realm := strings.Replace(o.GuildRealm, " ", "%20", -1)
-	command = fmt.Sprintf(o.SimcImport, realm, char, profileFilePath)
+	argString = fmt.Sprintf(o.SimcArgsImport, realm, char, profileFilePath)
+	args = strings.Split(argString, "|")
 	// for _, p := range params {
 	// 	args := strings.Split(p, "=")
 	// 	if len(args) != 2 {
@@ -141,7 +142,7 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 		glog.Errorf("Unable to send the message: %s", err)
 	}
 
-	output, err = ExecuteCommand(command)
+	output, err = ExecuteCommand(o.SimcCmd, o.SimcDir, args)
 	// glog.Info(output)
 	if err != nil {
 		glog.Error(err)
@@ -156,13 +157,14 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 	}
 
 	if withStats {
-		command = fmt.Sprintf(o.SimcWithStats, profileFilePath, resultsFilePath)
+		argString = fmt.Sprintf(o.SimcArgsWithStats, profileFilePath, resultsFilePath)
 	} else {
-		command = fmt.Sprintf(o.SimcNoStats, profileFilePath, resultsFilePath)
+		argString = fmt.Sprintf(o.SimcArgsNoStats, profileFilePath, resultsFilePath)
 	}
-	glog.Info(command)
+	args = strings.Split(argString, "|")
+	glog.Info(argString)
 
-	output, err = ExecuteCommand(command)
+	output, err = ExecuteCommand(o.SimcCmd, o.SimcDir, args)
 	// glog.Info(output)
 	if err != nil {
 		if strings.Contains(output, "Character not found") {
