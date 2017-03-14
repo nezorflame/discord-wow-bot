@@ -5,10 +5,11 @@ import (
 )
 
 // ExecuteCommand - function which runs the shell command
-func ExecuteCommand(cmd string) (output string, err error) {
+func ExecuteCommand(command string) (output string, err error) {
 	var bOutput []byte
-
-	bOutput, err = exec.Command(cmd).Output()
+	cmd := exec.Command(command)
+	cmd.Dir = o.SimcDir
+	bOutput, err = cmd.Output()
 	output = string(bOutput)
 
 	return

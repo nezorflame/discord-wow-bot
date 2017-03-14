@@ -14,6 +14,7 @@ type Options struct {
 	SSHAddress string
 	SSHUser    string
 
+	SimcDir       string
 	SimcImport    string
 	SimcNoStats   string
 	SimcWithStats string

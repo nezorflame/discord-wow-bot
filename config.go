@@ -40,6 +40,7 @@ func LoadConfig() {
 	o.GoogleShortenerLink = viper.GetString("google_shortener")
 
 	// SimC
+	o.SimcDir = viper.GetString("simc.dir")
 	o.SimcImport = viper.GetString("simc.import")
 	o.SimcNoStats = viper.GetString("simc.no_stats")
 	o.SimcWithStats = viper.GetString("simc.with_stats")
