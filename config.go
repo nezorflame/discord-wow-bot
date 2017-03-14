@@ -89,9 +89,7 @@ func LoadConfig() {
 	m.RollX = viper.GetString("messages.roll_x")
 	m.Roll100 = viper.GetString("messages.roll_100")
 
-	m.Relics = viper.GetString("messages.relics")
-	m.Godbook = viper.GetString("messages.godbook")
-
+	m.RealmInfo = viper.GetString("messages.realm_info")
 	m.RealmOn = viper.GetString("messages.realm_on")
 	m.RealmOff = viper.GetString("messages.realm_off")
 	m.RealmQueue = viper.GetString("messages.realm_queue")

@@ -35,7 +35,7 @@ func (b *Bot) Start() {
 	}
 
 	glog.Info("Adding handlers...")
-	b.Session.AddHandler(b.messageCreate)
+	b.Session.AddHandler(b.parseMessage)
 
 	glog.Info("Opening session...")
 	if err = b.Session.Open(); err != nil {
@@ -49,13 +49,83 @@ func (b *Bot) Start() {
 	glog.Info("Bot started")
 }
 
+// SendMessage sends the message to the selected channel
+func (b *Bot) SendMessage(chID string, message string) (err error) {
+	glog.Info("SENDING MESSAGE:", message)
+	retryOnBadGateway(func() error {
+		return sendFormattedMessage(b.Session, chID, message)
+	})
+	return
+}
+
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
-func (b *Bot) messageCreate(s *discordgo.Session, mes *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	if mes.Author.ID == b.ID {
+func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	// Ignore all messages created by the bot itself or without exclamation mark
+	if mes.Author.ID == b.ID || !strings.HasPrefix(mes.Content, "!") {
 		return
 	}
+	// Check the command to react and answer
+	switch mes.Content {
+	case "!ping":
+		b.pingReporter(mes)
+	case "!roll":
+		b.rollReporter(mes)
+	case "!johncena":
+		b.jcReporter(mes)
+	case "!logs":
+		b.logReporter(mes)
+	case "!help":
+		b.helpReporter(mes)
+	case "!boobs":
+		b.boobsReporter(mes)
+	case "!!terminate":
+		panic("Terminating...")
+	default:
+		b.reactToCommand(mes)
+	}
+}
+
+func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
+	// Check the command to react and answer
+	if strings.HasPrefix(mes.Content, "!status") {
+		b.statusReporter(mes)
+	}
+	if strings.HasPrefix(mes.Content, "!simc") {
+		if strings.HasPrefix(mes.Content, "!simcstats") {
+			b.simcReporter(mes, true)
+		} else {
+			b.simcReporter(mes, false)
+		}
+	}
+	if strings.HasPrefix(mes.Content, "!queue") {
+		b.queueReporter(mes)
+	}
+	if strings.HasPrefix(mes.Content, "!realminfo") {
+		b.realmInfoReporter(mes)
+	}
+	if strings.HasPrefix(mes.Content, "!guildmembers") {
+		if err := b.SendMessage(mes.ChannelID, m.GuildMembersList); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+		b.guildMembersReporter(mes)
+	}
+	if strings.HasPrefix(mes.Content, "!guildprofs") {
+		if err := b.SendMessage(mes.ChannelID, m.GuildProfsList); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
+		b.guildProfsReporter(mes)
+	}
+	if strings.HasPrefix(mes.Content, "!clean") {
+		b.cleanUp(mes)
+	}
+	// if strings.HasPrefix(mes.Content, "!announce") {
+	// 	message := strings.TrimPrefix(mes.Message.Content, "!announce")
+	// 	glog.Info(mes.Author.Username, "is announcing a message:", message)
+	// 	if err := sendMessage(s, o.GeneralChannelID, message); err != nil {
+	// 		glog.Errorf("Unable to send the message: %s", err)
+	// 	}
+	// }
 }
 
 /* Tries to call a method and checking if the method returned an error, if it
@@ -78,14 +148,6 @@ func retryOnBadGateway(f func() error) {
 			return
 		}
 	}
-}
-
-func sendMessage(session *discordgo.Session, chID string, message string) (err error) {
-	glog.Info("SENDING MESSAGE:", message)
-	retryOnBadGateway(func() error {
-		return sendFormattedMessage(session, chID, message)
-	})
-	return
 }
 
 func sendFormattedMessage(session *discordgo.Session, chID string, message string) (err error) {
