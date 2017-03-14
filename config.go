@@ -14,6 +14,7 @@ var (
 func LoadConfig() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/opt/bot")
 
 	glog.Info("Loading configuration...")
 	if err := viper.ReadInConfig(); err != nil {

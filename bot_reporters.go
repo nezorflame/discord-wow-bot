@@ -136,7 +136,6 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 	// 		command += " " + p
 	// 	}
 	// }
-	glog.Info(command)
 
 	if err = b.SendMessage(mes.ChannelID, fmt.Sprintf(m.SimcArmory, char)); err != nil {
 		glog.Errorf("Unable to send the message: %s", err)
@@ -162,7 +161,6 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 		argString = fmt.Sprintf(o.SimcArgsNoStats, profileFilePath, resultsFilePath)
 	}
 	args = strings.Split(argString, "|")
-	glog.Info(argString)
 
 	output, err = ExecuteCommand(o.SimcCmd, o.SimcDir, args)
 	// glog.Info(output)
