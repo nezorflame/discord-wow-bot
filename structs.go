@@ -15,7 +15,8 @@ type Options struct {
 	SSHUser    string
 
 	SimcDir           string
-	SimcCmd           string
+	SimcCmdStable     string
+	SimcCmdPtr        string
 	SimcArgsImport    string
 	SimcArgsNoStats   string
 	SimcArgsWithStats string

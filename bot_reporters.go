@@ -82,7 +82,7 @@ func (b *Bot) statusReporter(mes *discordgo.MessageCreate) {
 	}
 }
 
-func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
+func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats, forPtr bool) {
 	const timeFormat = "20060102_150405"
 	var (
 		simcExt = ".simc"
@@ -141,7 +141,13 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 		glog.Errorf("Unable to send the message: %s", err)
 	}
 
-	output, err = ExecuteCommand(o.SimcCmd, o.SimcDir, args)
+	if forPtr {
+		command = o.SimcCmdPtr
+	} else {
+		command = o.SimcCmdStable
+	}
+
+	output, err = ExecuteCommand(command, o.SimcDir, args)
 	// glog.Info(output)
 	if err != nil {
 		glog.Error(err)
@@ -162,7 +168,7 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats bool) {
 	}
 	args = strings.Split(argString, "|")
 
-	output, err = ExecuteCommand(o.SimcCmd, o.SimcDir, args)
+	output, err = ExecuteCommand(command, o.SimcDir, args)
 	// glog.Info(output)
 	if err != nil {
 		if strings.Contains(output, "Character not found") {

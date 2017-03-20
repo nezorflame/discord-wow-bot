@@ -66,7 +66,8 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 		return
 	}
 	// Check the command to react and answer
-	switch mes.Content {
+	message := strings.ToLower(mes.Content)
+	switch message {
 	case "!ping":
 		b.pingReporter(mes)
 	case "!roll":
@@ -88,35 +89,39 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 
 func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	// Check the command to react and answer
-	if strings.HasPrefix(mes.Content, "!status") {
+	message := strings.ToLower(mes.Content)
+	command := strings.SplitAfter
+	if strings.HasPrefix(message, "!status") {
 		b.statusReporter(mes)
 	}
-	if strings.HasPrefix(mes.Content, "!simc") {
-		if strings.HasPrefix(mes.Content, "!simcstats") {
-			b.simcReporter(mes, true)
-		} else {
-			b.simcReporter(mes, false)
-		}
+	if strings.HasPrefix(message, "!simcptr") {
+		b.simcReporter(mes, false, true)
 	}
-	if strings.HasPrefix(mes.Content, "!queue") {
+	if strings.HasPrefix(message, "!simcstats") {
+		b.simcReporter(mes, true, false)
+	}
+	if strings.HasPrefix(message, "!simc") {
+		b.simcReporter(mes, false, false)
+	}
+	if strings.HasPrefix(message, "!queue") {
 		b.queueReporter(mes)
 	}
-	if strings.HasPrefix(mes.Content, "!realminfo") {
+	if strings.HasPrefix(message, "!realminfo") {
 		b.realmInfoReporter(mes)
 	}
-	if strings.HasPrefix(mes.Content, "!guildmembers") {
+	if strings.HasPrefix(message, "!guildmembers") {
 		if err := b.SendMessage(mes.ChannelID, m.GuildMembersList); err != nil {
 			glog.Errorf("Unable to send the message: %s", err)
 		}
 		b.guildMembersReporter(mes)
 	}
-	if strings.HasPrefix(mes.Content, "!guildprofs") {
+	if strings.HasPrefix(message, "!guildprofs") {
 		if err := b.SendMessage(mes.ChannelID, m.GuildProfsList); err != nil {
 			glog.Errorf("Unable to send the message: %s", err)
 		}
 		b.guildProfsReporter(mes)
 	}
-	if strings.HasPrefix(mes.Content, "!clean") {
+	if strings.HasPrefix(message, "!clean") {
 		b.cleanUp(mes)
 	}
 	// if strings.HasPrefix(mes.Content, "!announce") {
