@@ -67,7 +67,7 @@ func (b *Bot) statusReporter(mes *discordgo.MessageCreate) {
 	}
 }
 
-func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withStats, forPtr bool) {
+func (b *Bot) simcArmoryReporter(mes *discordgo.MessageCreate, command string, withStats, forPtr bool) {
 	const timeFormat = "20060102_150405"
 	var (
 		simcExt = ".simc"
@@ -149,10 +149,89 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	// glog.Info(output)
 	if err != nil {
 		glog.Error(err)
-		b.SendMessage(mes.ChannelID, m.ErrorUser)
+		b.SendMessage(mes.ChannelID, m.SimcArmoryError)
 		return
 	}
 	glog.Info("Created the user profile from Armory")
+	b.SendMessage(mes.ChannelID, m.SimcImportSuccess)
+
+	if withStats {
+		argString = fmt.Sprintf(o.SimcArgsWithStats, profileFilePath, resultsFilePath)
+	} else {
+		argString = fmt.Sprintf(o.SimcArgsNoStats, profileFilePath, resultsFilePath)
+	}
+	args = strings.Split(argString, "|")
+
+	output, err = ExecuteCommand(command, o.SimcDir, args)
+	// glog.Info(output)
+	if err != nil {
+		if strings.Contains(output, "Character not found") {
+			glog.Error("Unable to find the character")
+			b.SendMessage(mes.ChannelID, m.SimcArmoryError)
+			return
+		}
+		glog.Error(err)
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
+		return
+	}
+	glog.Info("Created the simulation")
+
+	if file, err = os.Open(resultsFilePath); err != nil {
+		glog.Error(err)
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
+		return
+	}
+
+	if _, err = b.Session.ChannelFileSendWithMessage(
+		mes.ChannelID,
+		fmt.Sprintf("<@%s>", mes.Author.ID),
+		fmt.Sprintf("%s_%s%s", unidecode.Unidecode(char), now, htmlExt),
+		file,
+	); err != nil {
+		glog.Error(err)
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
+	}
+	glog.Info("Sent the file to the user")
+}
+
+func (b *Bot) simcProfileReporter(mes *discordgo.MessageCreate, command string, withStats, forPtr bool) {
+	const timeFormat = "20060102_150405"
+	var (
+		simcExt = ".simc"
+		htmlExt = ".html"
+
+		argString, char, output, profileName string
+
+		args []string
+		file *os.File
+		err  error
+	)
+
+	glog.Info("getting simcraft sim from profile...")
+
+	char = strings.Split(mes.Content, " ")[2]
+	location, _ := time.LoadLocation(o.GuildTimezone)
+	now := time.Now().In(location).Format(timeFormat)
+	profileName = fmt.Sprintf("%s_%s", char, now)
+	profileFilePath := fmt.Sprintf("/tmp/%s%s", profileName, simcExt)
+	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
+	resultsFilePath := "/tmp/" + resultsFileName
+
+	b.SendMessage(mes.ChannelID, fmt.Sprintf(m.SimcProfile, char))
+
+	if forPtr {
+		command = o.SimcCmdPtr
+	} else {
+		command = o.SimcCmdStable
+	}
+
+	// save file
+	if err = DownloadFile(profileFilePath, mes.Attachments[0].URL); err != nil {
+		glog.Errorf("Unable to download the file: %s", err)
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
+		return
+	}
+
 	b.SendMessage(mes.ChannelID, m.SimcImportSuccess)
 
 	if withStats {

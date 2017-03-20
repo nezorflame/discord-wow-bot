@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -51,4 +53,29 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 		return nil, err
 	}
 	return body, nil
+}
+
+// DownloadFile gets the file from the URL and saves to the set path
+func DownloadFile(filepath string, url string) (err error) {
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

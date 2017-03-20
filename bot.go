@@ -65,6 +65,10 @@ func (b *Bot) SendMessage(chID string, message string) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
 func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
+	// Try to work with the file if bot is a recepient
+	if len(mes.Attachments) == 1 && userListContainsUser(mes.Mentions, b.ID) {
+		b.reactToFile(mes)
+	}
 	// Ignore all messages created by the bot itself or without exclamation mark
 	if mes.Author.ID == b.ID || !strings.HasPrefix(mes.Content, "!") {
 		return
@@ -91,6 +95,30 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 	}
 }
 
+func (b *Bot) reactToFile(mes *discordgo.MessageCreate) {
+	// Ask user how to react
+	glog.Info("trying to process the file...")
+	msgParts := strings.Split(mes.Content, " ")
+	if len(msgParts) != 3 {
+		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
+		return
+	}
+	command := msgParts[1]
+	switch command {
+	case "!simcptr":
+		b.simcProfileReporter(mes, command, false, true)
+	case "!simcstats":
+		b.simcProfileReporter(mes, command, true, false)
+	case "!simc":
+		b.simcProfileReporter(mes, command, false, false)
+	default:
+		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
+	}
+
+}
+
 func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	// Check the command to react and answer
 	command := strings.Split(strings.ToLower(mes.Content), " ")[0]
@@ -98,11 +126,11 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!status":
 		b.statusReporter(mes)
 	case "!simcptr":
-		b.simcReporter(mes, command, false, true)
+		b.simcArmoryReporter(mes, command, false, true)
 	case "!simcstats":
-		b.simcReporter(mes, command, true, false)
+		b.simcArmoryReporter(mes, command, true, false)
 	case "!simc":
-		b.simcReporter(mes, command, false, false)
+		b.simcArmoryReporter(mes, command, false, false)
 	case "!queue":
 		b.queueReporter(mes)
 	case "!realminfo":
@@ -114,6 +142,7 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!clean":
 		b.cleanUp(mes)
 	default:
+		glog.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	}
 }
@@ -184,4 +213,13 @@ func sendFormattedMessage(session *discordgo.Session, chID string, message strin
 		_, err = session.ChannelMessageSend(chID, message)
 	}
 	return
+}
+
+func userListContainsUser(users []*discordgo.User, userID string) bool {
+	for _, u := range users {
+		if u.ID == userID {
+			return true
+		}
+	}
+	return false
 }
