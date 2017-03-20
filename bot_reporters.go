@@ -16,36 +16,26 @@ import (
 
 func (b *Bot) pingReporter(mes *discordgo.MessageCreate) {
 	glog.Info("Sending pong to user...")
-	if err := b.SendMessage(mes.ChannelID, m.Pong); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.Pong)
 }
 
 func (b *Bot) helpReporter(mes *discordgo.MessageCreate) {
 	glog.Info("Sending help to user...")
-	if err := b.SendMessage(mes.ChannelID, m.Help); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.Help)
 }
 
 func (b *Bot) boobsReporter(mes *discordgo.MessageCreate) {
 	glog.Info("Sending boobies to user...:)")
-	if err := b.SendMessage(mes.ChannelID, m.Boobies); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.Boobies)
 }
 
 func (b *Bot) jcReporter(mes *discordgo.MessageCreate) {
 	glog.Info("And his name is...")
-	if err := b.SendMessage(mes.ChannelID, m.JohnCena); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.JohnCena)
 }
 
 func (b *Bot) logReporter(mes *discordgo.MessageCreate) {
-	if err := b.SendMessage(mes.ChannelID, m.Logs); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.Logs)
 }
 
 func (b *Bot) rollReporter(mes *discordgo.MessageCreate) {
@@ -60,9 +50,7 @@ func (b *Bot) rollReporter(mes *discordgo.MessageCreate) {
 	default:
 		message = fmt.Sprintf(m.RollX, mes.Author.ID, roll)
 	}
-	if err := b.SendMessage(mes.ChannelID, message); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, message)
 }
 
 func (b *Bot) statusReporter(mes *discordgo.MessageCreate) {
@@ -71,14 +59,11 @@ func (b *Bot) statusReporter(mes *discordgo.MessageCreate) {
 	glog.Infof("getting status of %s and sending it...", realmString)
 	if realmStatus, err := GetRealmStatus(realmString); err != nil {
 		glog.Errorf("Unable to get the realm status: %s", err)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	} else if realmStatus {
-		if sErr := b.SendMessage(mes.ChannelID, m.RealmOn); sErr != nil {
-			glog.Error(sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.RealmOn)
 	} else {
-		if sErr := b.SendMessage(mes.ChannelID, m.RealmOff); sErr != nil {
-			glog.Error(sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.RealmOff)
 	}
 }
 
@@ -99,9 +84,7 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	char := params[0]
 	if len(params) == 0 || char == command || char == "" {
 		glog.Infof("Command is incorrect: %s", mes.Content)
-		if err = b.SendMessage(mes.ChannelID, m.ErrorUser); err != nil {
-			glog.Errorf("Unable to send the message: %s", err)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 		return
 	}
 
@@ -132,9 +115,7 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	// 	}
 	// }
 
-	if err = b.SendMessage(mes.ChannelID, fmt.Sprintf(m.SimcArmory, char)); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, fmt.Sprintf(m.SimcArmory, char))
 
 	if forPtr {
 		command = o.SimcCmdPtr
@@ -146,15 +127,11 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	// glog.Info(output)
 	if err != nil {
 		glog.Error(err)
-		if sErr := b.SendMessage(mes.ChannelID, m.ErrorUser); sErr != nil {
-			glog.Errorf("Unable to send the message: %s", sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 		return
 	}
 	glog.Info("Created the user profile from Armory")
-	if err = b.SendMessage(mes.ChannelID, m.SimcImportSuccess); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, m.SimcImportSuccess)
 
 	if withStats {
 		argString = fmt.Sprintf(o.SimcArgsWithStats, profileFilePath, resultsFilePath)
@@ -168,24 +145,18 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	if err != nil {
 		if strings.Contains(output, "Character not found") {
 			glog.Error("Unable to find the character")
-			if sErr := b.SendMessage(mes.ChannelID, m.SimcArmoryError); sErr != nil {
-				glog.Errorf("Unable to send the message: %s", sErr)
-			}
+			b.SendMessage(mes.ChannelID, m.SimcArmoryError)
 			return
 		}
 		glog.Error(err)
-		if sErr := b.SendMessage(mes.ChannelID, m.ErrorServer); sErr != nil {
-			glog.Errorf("Unable to send the message: %s", sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
 		return
 	}
 	glog.Info("Created the simulation")
 
 	if file, err = os.Open(resultsFilePath); err != nil {
 		glog.Error(err)
-		if sErr := b.SendMessage(mes.ChannelID, m.ErrorServer); sErr != nil {
-			glog.Errorf("Unable to send the message: %s", sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
 		return
 	}
 
@@ -196,9 +167,7 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 		file,
 	); err != nil {
 		glog.Error(err)
-		if sErr := b.SendMessage(mes.ChannelID, m.ErrorServer); sErr != nil {
-			glog.Errorf("Unable to send the message: %s", sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorServer)
 	}
 	glog.Info("Sent the file to the user")
 }
@@ -209,14 +178,11 @@ func (b *Bot) queueReporter(mes *discordgo.MessageCreate) {
 	glog.Infof("getting queue status of %s and sending it...", realmString)
 	if realmQueue, err := GetRealmQueueStatus(realmString); err != nil {
 		glog.Errorf("Unable to get the realm queue status: %s", err)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	} else if realmQueue {
-		if sErr := b.SendMessage(mes.ChannelID, m.RealmQueue); sErr != nil {
-			glog.Error(sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.RealmQueue)
 	} else {
-		if sErr := b.SendMessage(mes.ChannelID, m.RealmNoQueue); sErr != nil {
-			glog.Error(sErr)
-		}
+		b.SendMessage(mes.ChannelID, m.RealmNoQueue)
 	}
 }
 
@@ -252,9 +218,7 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 			"Армори":        member["Link"],
 		})
 	}
-	if err = b.SendMessage(mes.ChannelID, "```"+tab.String()+"```"); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, "```"+tab.String()+"```")
 }
 
 func (b *Bot) guildProfsReporter(mes *discordgo.MessageCreate) {
@@ -282,9 +246,7 @@ func (b *Bot) guildProfsReporter(mes *discordgo.MessageCreate) {
 			"Уровень 2 профы": member["SecondProfLevel"],
 		})
 	}
-	if err = b.SendMessage(mes.ChannelID, "```"+tab.String()+"```"); err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
-	}
+	b.SendMessage(mes.ChannelID, "```"+tab.String()+"```")
 }
 
 func (b *Bot) realmInfoReporter(mes *discordgo.MessageCreate) {
@@ -295,10 +257,9 @@ func (b *Bot) realmInfoReporter(mes *discordgo.MessageCreate) {
 	realmInfo, err := GetRealmInfo(realmString)
 	if err != nil {
 		glog.Errorf("Unable to get guild info: %s", err)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	} else {
-		if sErr := b.SendMessage(mes.ChannelID, realmInfo); sErr != nil {
-			glog.Errorf("Unable to send the message: %s", sErr)
-		}
+		b.SendMessage(mes.ChannelID, realmInfo)
 	}
 }
 
@@ -323,9 +284,7 @@ func (b *Bot) cleanUp(mes *discordgo.MessageCreate) {
 	}
 	if mes.ChannelID == o.GeneralChannelID && !containsUser(o.Admins, mes.Author.ID) && (amount > 3 || amount == -1) {
 		glog.Info("User is trying to delete all bot messages from main channel! Won't work!")
-		if err = b.SendMessage(mes.ChannelID, m.Clean); err != nil {
-			glog.Errorf("Unable to send the message: %s", err)
-		}
+		b.SendMessage(mes.ChannelID, m.Clean)
 		return
 	}
 	lastMessageChecked := mes.ID

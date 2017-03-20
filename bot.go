@@ -50,11 +50,15 @@ func (b *Bot) Start() {
 }
 
 // SendMessage sends the message to the selected channel
-func (b *Bot) SendMessage(chID string, message string) (err error) {
-	glog.Info("SENDING MESSAGE:", message)
-	retryOnBadGateway(func() error {
+func (b *Bot) SendMessage(chID string, message string) {
+	var err error
+	glog.Infof("SENDING MESSAGE: %s", message)
+	err = retryOnBadGateway(func() error {
 		return sendFormattedMessage(b.Session, chID, message)
 	})
+	if err != nil {
+		glog.Errorf("Unable to send the message: %s", err)
+	}
 	return
 }
 
@@ -89,8 +93,7 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 
 func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	// Check the command to react and answer
-	message := strings.ToLower(mes.Content)
-	command := strings.Split(message, " ")[0]
+	command := strings.Split(strings.ToLower(mes.Content), " ")[0]
 	switch command {
 	case "!status":
 		b.statusReporter(mes)
@@ -105,28 +108,22 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!realminfo":
 		b.realmInfoReporter(mes)
 	case "!guildmembers":
-		if err := b.SendMessage(mes.ChannelID, m.GuildMembersList); err != nil {
-			glog.Errorf("Unable to send the message: %s", err)
-		}
+		b.SendMessage(mes.ChannelID, m.GuildMembersList)
 		b.guildMembersReporter(mes)
 	case "!guildprofs":
-		if err := b.SendMessage(mes.ChannelID, m.GuildProfsList); err != nil {
-			glog.Errorf("Unable to send the message: %s", err)
-		}
+		b.SendMessage(mes.ChannelID, m.GuildProfsList)
 		b.guildProfsReporter(mes)
 	case "!clean":
 		b.cleanUp(mes)
 	default:
-		if err := b.SendMessage(mes.ChannelID, m.ErrorUser); err != nil {
-			glog.Errorf("Unable to send the message: %s", err)
-		}
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	}
 }
 
 /* Tries to call a method and checking if the method returned an error, if it
 did check to see if it's HTTP 502 from the Discord API and retry for
 `attempts` number of times. */
-func retryOnBadGateway(f func() error) {
+func retryOnBadGateway(f func() error) error {
 	var err error
 	for i := 0; i < 3; i++ {
 		if err = f(); err != nil {
@@ -135,14 +132,15 @@ func retryOnBadGateway(f func() error) {
 				time.Sleep(1 * time.Second)
 				continue
 			} else {
-				// Otherwise panic !
-				glog.Fatal(err)
+				// Otherwise return error
+				return err
 			}
 		} else {
-			// In case of no error, return.
-			return
+			// In case of no error, return nil
+			return nil
 		}
 	}
+	return err
 }
 
 func sendFormattedMessage(session *discordgo.Session, chID string, message string) (err error) {
