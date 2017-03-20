@@ -95,11 +95,11 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!status":
 		b.statusReporter(mes)
 	case "!simcptr":
-		b.simcReporter(mes, false, true)
+		b.simcReporter(mes, command, false, true)
 	case "!simcstats":
-		b.simcReporter(mes, true, false)
+		b.simcReporter(mes, command, true, false)
 	case "!simc":
-		b.simcReporter(mes, false, false)
+		b.simcReporter(mes, command, false, false)
 	case "!queue":
 		b.queueReporter(mes)
 	case "!realminfo":

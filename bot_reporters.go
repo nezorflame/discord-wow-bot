@@ -82,24 +82,19 @@ func (b *Bot) statusReporter(mes *discordgo.MessageCreate) {
 	}
 }
 
-func (b *Bot) simcReporter(mes *discordgo.MessageCreate, withStats, forPtr bool) {
+func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withStats, forPtr bool) {
 	const timeFormat = "20060102_150405"
 	var (
 		simcExt = ".simc"
 		htmlExt = ".html"
 
-		command, argString, output, profileName string
+		argString, output, profileName string
 
 		args []string
 		file *os.File
 		err  error
 	)
 	glog.Info("getting simcraft sim...")
-	if withStats {
-		command = "!simcstats"
-	} else {
-		command = "!simc"
-	}
 	params := strings.Split(strings.Replace(mes.Content, command+" ", "", 1), " ")
 	char := params[0]
 	if len(params) == 0 || char == command || char == "" {
