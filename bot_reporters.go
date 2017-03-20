@@ -97,7 +97,18 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 			case 2:
 				region = o.GuildRegion
 				realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
-				char = params[1]
+				if strings.Contains(params[1], "-") {
+					charParams := strings.Split(params[1], "-")
+					char = charParams[0]
+					realm, err = GetRealmSlug(charParams[1])
+					if err != nil {
+						glog.Infof("Realm name is incorrect: %s", charParams[1])
+						b.SendMessage(mes.ChannelID, m.ErrorUser)
+						return
+					}
+				} else {
+					char = params[1]
+				}
 			case 4:
 				region = params[1]
 				realm, err = GetRealmSlug(params[2])

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/golang/glog"
 )
@@ -108,6 +109,7 @@ func getRealms() (*[]Realm, error) {
 }
 
 func getRealmByName(realmName string) (Realm, error) {
+	realmName = splitStringByCase(realmName)
 	glog.Infof("getRealmByName: %s", realmName)
 	realms, err := getRealms()
 	if err != nil {
@@ -120,4 +122,16 @@ func getRealmByName(realmName string) (Realm, error) {
 		}
 	}
 	return *new(Realm), errors.New("No such realm is present")
+}
+
+func splitStringByCase(splitString string) (result string) {
+	l := 0
+	for s := splitString; s != ""; s = s[l:] {
+		l = strings.IndexFunc(s[1:], unicode.IsUpper) + 1
+		if l <= 0 {
+			l = len(s)
+		}
+		result += " " + s[:l]
+	}
+	return
 }
