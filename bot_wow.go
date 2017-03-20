@@ -109,7 +109,9 @@ func getRealms() (*[]Realm, error) {
 }
 
 func getRealmByName(realmName string) (Realm, error) {
-	realmName = splitStringByCase(realmName)
+	if !strings.Contains(realmName, " ") {
+		realmName = splitStringByCase(realmName)
+	}
 	glog.Infof("getRealmByName: %s", realmName)
 	realms, err := getRealms()
 	if err != nil {
@@ -131,7 +133,11 @@ func splitStringByCase(splitString string) (result string) {
 		if l <= 0 {
 			l = len(s)
 		}
-		result += " " + s[:l]
+		if result == "" {
+			result = s[:l]
+		} else {
+			result += " " + s[:l]
+		}
 	}
 	return
 }

@@ -82,56 +82,50 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	glog.Info("getting simcraft sim...")
 	params := strings.Split(strings.Replace(mes.Content, command+" ", "", 1), ",")
 	cmdType := params[0]
-	if len(params) == 0 || cmdType == command || cmdType == "" {
+	if cmdType == command || cmdType == "" {
 		glog.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 		return
-	} else if len(params) == 1 {
+	}
+
+	switch len(params) {
+	case 1:
 		region = o.GuildRegion
-		realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
-		char = cmdType
-	} else {
-		switch cmdType {
-		case "armory":
-			switch len(params) {
-			case 2:
-				region = o.GuildRegion
-				realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
-				if strings.Contains(params[1], "-") {
-					charParams := strings.Split(params[1], "-")
-					char = charParams[0]
-					realm, err = GetRealmSlug(charParams[1])
-					if err != nil {
-						glog.Infof("Realm name is incorrect: %s", charParams[1])
-						b.SendMessage(mes.ChannelID, m.ErrorUser)
-						return
-					}
-				} else {
-					char = params[1]
-				}
-			case 4:
-				region = params[1]
-				realm, err = GetRealmSlug(params[2])
-				if err != nil {
-					glog.Infof("Realm name is incorrect: %s", params[2])
-					b.SendMessage(mes.ChannelID, m.ErrorUser)
-					return
-				}
-				char = params[3]
-			default:
-				glog.Infof("Command is incorrect: %s", mes.Content)
+		if strings.Contains(params[0], "-") {
+			charParams := strings.Split(params[0], "-")
+			char = charParams[0]
+			realm, err = GetRealmSlug(charParams[1])
+			if err != nil {
+				glog.Infof("Realm name is incorrect: %s", charParams[1])
 				b.SendMessage(mes.ChannelID, m.ErrorUser)
 				return
 			}
-		case "profile":
-			glog.Infof("SimC by profile request")
-			b.SendMessage(mes.ChannelID, "Coming soon! :)")
-			return
-		default:
-			glog.Infof("Command is incorrect: %s", mes.Content)
+		} else {
+			realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
+			char = params[0]
+		}
+	case 2:
+		region = o.GuildRegion
+		realm, err = GetRealmSlug(params[0])
+		if err != nil {
+			glog.Infof("Realm name is incorrect: %s", params[0])
 			b.SendMessage(mes.ChannelID, m.ErrorUser)
 			return
 		}
+		char = params[1]
+	case 3:
+		region = params[0]
+		realm, err = GetRealmSlug(params[1])
+		if err != nil {
+			glog.Infof("Realm name is incorrect: %s", params[1])
+			b.SendMessage(mes.ChannelID, m.ErrorUser)
+			return
+		}
+		char = params[2]
+	default:
+		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SendMessage(mes.ChannelID, m.ErrorUser)
+		return
 	}
 
 	location, _ := time.LoadLocation(o.GuildTimezone)
@@ -140,7 +134,6 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	profileFilePath := fmt.Sprintf("/tmp/%s%s", profileName, simcExt)
 	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
 	resultsFilePath := "/tmp/" + resultsFileName
-	realm = strings.Replace(realm, " ", "%20", -1)
 	argString = fmt.Sprintf(o.SimcArgsImport, region, realm, char, profileFilePath)
 	args = strings.Split(argString, "|")
 
