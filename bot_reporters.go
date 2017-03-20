@@ -73,19 +73,54 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 		simcExt = ".simc"
 		htmlExt = ".html"
 
-		argString, output, profileName string
+		argString, char, realm, region, output, profileName string
 
 		args []string
 		file *os.File
 		err  error
 	)
 	glog.Info("getting simcraft sim...")
-	params := strings.Split(strings.Replace(mes.Content, command+" ", "", 1), " ")
-	char := params[0]
-	if len(params) == 0 || char == command || char == "" {
+	params := strings.Split(strings.Replace(mes.Content, command+" ", "", 1), ",")
+	cmdType := params[0]
+	if len(params) == 0 || cmdType == command || cmdType == "" {
 		glog.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 		return
+	} else if len(params) == 1 {
+		region = o.GuildRegion
+		realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
+		char = cmdType
+	} else {
+		switch cmdType {
+		case "armory":
+			switch len(params) {
+			case 2:
+				region = o.GuildRegion
+				realm = strings.Replace(o.GuildRealm, " ", "%20", -1)
+				char = params[1]
+			case 4:
+				region = params[1]
+				realm, err = GetRealmSlug(params[2])
+				if err != nil {
+					glog.Infof("Realm name is incorrect: %s", params[2])
+					b.SendMessage(mes.ChannelID, m.ErrorUser)
+					return
+				}
+				char = params[3]
+			default:
+				glog.Infof("Command is incorrect: %s", mes.Content)
+				b.SendMessage(mes.ChannelID, m.ErrorUser)
+				return
+			}
+		case "profile":
+			glog.Infof("SimC by profile request")
+			b.SendMessage(mes.ChannelID, "Coming soon! :)")
+			return
+		default:
+			glog.Infof("Command is incorrect: %s", mes.Content)
+			b.SendMessage(mes.ChannelID, m.ErrorUser)
+			return
+		}
 	}
 
 	location, _ := time.LoadLocation(o.GuildTimezone)
@@ -94,26 +129,9 @@ func (b *Bot) simcReporter(mes *discordgo.MessageCreate, command string, withSta
 	profileFilePath := fmt.Sprintf("/tmp/%s%s", profileName, simcExt)
 	resultsFileName := fmt.Sprintf("%s%s", profileName, htmlExt)
 	resultsFilePath := "/tmp/" + resultsFileName
-	realm := strings.Replace(o.GuildRealm, " ", "%20", -1)
-	argString = fmt.Sprintf(o.SimcArgsImport, realm, char, profileFilePath)
+	realm = strings.Replace(realm, " ", "%20", -1)
+	argString = fmt.Sprintf(o.SimcArgsImport, region, realm, char, profileFilePath)
 	args = strings.Split(argString, "|")
-	// for _, p := range params {
-	// 	args := strings.Split(p, "=")
-	// 	if len(args) != 2 {
-	// 		continue
-	// 	}
-	// 	switch args[0] {
-	// 	case "armory":
-	// 		if args[1] == "no" {
-	// 			isImported = true
-	// 		} else {
-	// 			strings.Replace(args[1], "_", "%20", -1)
-	// 			profile = args[0] + "=" + args[1]
-	// 		}
-	// 	default:
-	// 		command += " " + p
-	// 	}
-	// }
 
 	b.SendMessage(mes.ChannelID, fmt.Sprintf(m.SimcArmory, char))
 
@@ -187,6 +205,7 @@ func (b *Bot) queueReporter(mes *discordgo.MessageCreate) {
 }
 
 func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
+	b.SendMessage(mes.ChannelID, m.GuildMembersList)
 	glog.Info("getting parametes string slice...")
 	var parameters []string
 	paramString := strings.TrimPrefix(mes.Content, "!guildmembers")
@@ -222,6 +241,7 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 }
 
 func (b *Bot) guildProfsReporter(mes *discordgo.MessageCreate) {
+	b.SendMessage(mes.ChannelID, m.GuildProfsList)
 	glog.Info("getting parametes string slice...")
 	paramString := strings.TrimPrefix(mes.Content, "!guildprofs")
 	paramString = strings.TrimPrefix(paramString, " ")

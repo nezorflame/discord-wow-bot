@@ -47,6 +47,15 @@ func GetRealmInfo(realmName string) (string, error) {
 	return realmInfo, nil
 }
 
+// GetRealmSlug - function for receiving realm slug
+func GetRealmSlug(realmName string) (string, error) {
+	realm, err := getRealmByName(realmName)
+	if err != nil {
+		return "", err
+	}
+	return realm.Slug, nil
+}
+
 // GetGuildMembers - function for receiving a list of guild members
 func GetGuildMembers(realmName, guildName string, params []string) (members []map[string]string, err error) {
 	return

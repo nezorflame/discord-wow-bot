@@ -108,10 +108,8 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!realminfo":
 		b.realmInfoReporter(mes)
 	case "!guildmembers":
-		b.SendMessage(mes.ChannelID, m.GuildMembersList)
 		b.guildMembersReporter(mes)
 	case "!guildprofs":
-		b.SendMessage(mes.ChannelID, m.GuildProfsList)
 		b.guildProfsReporter(mes)
 	case "!clean":
 		b.cleanUp(mes)
