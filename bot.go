@@ -90,47 +90,37 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	// Check the command to react and answer
 	message := strings.ToLower(mes.Content)
-	command := strings.SplitAfter
-	if strings.HasPrefix(message, "!status") {
+	command := strings.Split(message, " ")[0]
+	switch command {
+	case "!status":
 		b.statusReporter(mes)
-	}
-	if strings.HasPrefix(message, "!simcptr") {
+	case "!simcptr":
 		b.simcReporter(mes, false, true)
-	}
-	if strings.HasPrefix(message, "!simcstats") {
+	case "!simcstats":
 		b.simcReporter(mes, true, false)
-	}
-	if strings.HasPrefix(message, "!simc") {
+	case "!simc":
 		b.simcReporter(mes, false, false)
-	}
-	if strings.HasPrefix(message, "!queue") {
+	case "!queue":
 		b.queueReporter(mes)
-	}
-	if strings.HasPrefix(message, "!realminfo") {
+	case "!realminfo":
 		b.realmInfoReporter(mes)
-	}
-	if strings.HasPrefix(message, "!guildmembers") {
+	case "!guildmembers":
 		if err := b.SendMessage(mes.ChannelID, m.GuildMembersList); err != nil {
 			glog.Errorf("Unable to send the message: %s", err)
 		}
 		b.guildMembersReporter(mes)
-	}
-	if strings.HasPrefix(message, "!guildprofs") {
+	case "!guildprofs":
 		if err := b.SendMessage(mes.ChannelID, m.GuildProfsList); err != nil {
 			glog.Errorf("Unable to send the message: %s", err)
 		}
 		b.guildProfsReporter(mes)
-	}
-	if strings.HasPrefix(message, "!clean") {
+	case "!clean":
 		b.cleanUp(mes)
+	default:
+		if err := b.SendMessage(mes.ChannelID, m.ErrorUser); err != nil {
+			glog.Errorf("Unable to send the message: %s", err)
+		}
 	}
-	// if strings.HasPrefix(mes.Content, "!announce") {
-	// 	message := strings.TrimPrefix(mes.Message.Content, "!announce")
-	// 	glog.Info(mes.Author.Username, "is announcing a message:", message)
-	// 	if err := sendMessage(s, o.GeneralChannelID, message); err != nil {
-	// 		glog.Errorf("Unable to send the message: %s", err)
-	// 	}
-	// }
 }
 
 /* Tries to call a method and checking if the method returned an error, if it
