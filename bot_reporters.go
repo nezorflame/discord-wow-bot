@@ -26,7 +26,8 @@ func (b *Bot) helpReporter(mes *discordgo.MessageCreate) {
 
 func (b *Bot) boobsReporter(mes *discordgo.MessageCreate) {
 	glog.Info("Sending boobies to user...:)")
-	b.SendMessage(mes.ChannelID, m.Boobies)
+	b.SendMessage(mes.ChannelID, m.BoobiesPrefix)
+	b.SendMessage(mes.ChannelID, m.Boobies[rand.Intn(len(m.Boobies))])
 }
 
 func (b *Bot) jcReporter(mes *discordgo.MessageCreate) {

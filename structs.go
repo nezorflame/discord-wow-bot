@@ -64,11 +64,12 @@ type Messages struct {
 	ErrorUser   string
 	ErrorServer string
 
-	Legendary string
+	BoobiesPrefix string
+	Boobies       []string
 
-	Boobies  string
-	JohnCena string
-	Logs     string
+	Legendary string
+	JohnCena  string
+	Logs      string
 
 	Roll1   string
 	RollX   string
