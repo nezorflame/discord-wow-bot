@@ -163,9 +163,7 @@ func (b *Bot) simcArmoryReporter(mes *discordgo.MessageCreate, command string, w
 	}
 	args = strings.Split(argString, "|")
 
-	output, err = ExecuteCommand(command, o.SimcDir, args)
-	// glog.Info(output)
-	if err != nil {
+	if output, err = ExecuteCommand(command, o.SimcDir, args); err != nil {
 		if strings.Contains(output, "Character not found") {
 			glog.Error("Unable to find the character")
 			b.SendMessage(mes.ChannelID, m.SimcArmoryError)
