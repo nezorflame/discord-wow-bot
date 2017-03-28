@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -12,6 +13,13 @@ import (
 type Bot struct {
 	ID      string
 	Session *discordgo.Session
+
+	Guild *GuildInfo
+
+	HighLvlCharacters map[string]*Character
+	LegendariesByChar map[string][]*Item
+
+	CharMutex sync.Mutex
 }
 
 // Start launches the connection to the bot
@@ -42,11 +50,15 @@ func (b *Bot) Start() {
 		glog.Fatalf("Unable to open the session: %s", err)
 	}
 
-	glog.Info("Starting guild watcher...")
-	// legendaries = make(map[string][]*Item)
-	// go guildWatcher(session)
+	b.LegendariesByChar = make(map[string][]*Item)
 
-	glog.Info("Bot started")
+	glog.Info("Starting guild watcher...")
+	go b.guildWatcher()
+
+	glog.Info("Starting legendaries watcher...")
+	go b.legendaryWatcher()
+
+	glog.Info("Bot started.")
 }
 
 // SendMessage sends the message to the selected channel

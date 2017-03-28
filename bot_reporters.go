@@ -297,11 +297,6 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 		glog.Info("paramString:", paramString, "parameters len:", len(parameters))
 	}
 	glog.Info("getting guild members list and sending it...")
-	guildMembersInfo, err := GetGuildMembers(o.GuildRealm, o.GuildName, parameters)
-	if err != nil {
-		glog.Errorf("Unable to get guild members: %s", err)
-		return
-	}
 	tab := fmttab.New("Список согильдейцев", fmttab.BorderDouble, nil)
 	tab.AddColumn("Имя", fmttab.WidthAuto, fmttab.AlignLeft).
 		AddColumn("Уровень", 7, fmttab.AlignLeft).
@@ -309,16 +304,18 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 		AddColumn("Специализация", 18, fmttab.AlignLeft).
 		AddColumn("iLevel", 6, fmttab.AlignLeft).
 		AddColumn("Армори", 22, fmttab.AlignLeft)
-	for _, member := range guildMembersInfo {
+	b.CharMutex.Lock()
+	for _, char := range b.HighLvlCharacters {
 		tab.AppendData(map[string]interface{}{
-			"Имя":           member["Name"],
-			"Уровень":       member["Level"],
-			"Класс":         member["Class"],
-			"Специализация": member["Spec"],
-			"iLevel":        member["ItemLevel"],
-			"Армори":        member["Link"],
+			"Имя":           char.Name,
+			"Уровень":       char.Level,
+			"Класс":         char.Class,
+			"Специализация": char.Spec.Name,
+			"iLevel":        char.Items.AvgItemLvlEq,
+			"Армори":        char.Link,
 		})
 	}
+	b.CharMutex.Unlock()
 	b.SendMessage(mes.ChannelID, "```"+tab.String()+"```")
 }
 

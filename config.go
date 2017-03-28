@@ -31,14 +31,16 @@ func LoadConfig() {
 	if o.GoogleToken = viper.GetString("google_token"); o.GoogleToken == "" {
 		glog.Fatal("'google_token' must be present")
 	}
-	if o.Bucket = viper.GetString("bucket"); o.Bucket == "" {
-		glog.Fatal("'bucket' must be present")
-	}
 
 	// Links
 	o.WowheadItemLink = viper.GetString("wowhead_item")
 	o.WoWDBItemLink = viper.GetString("wowdb_item")
 	o.GoogleShortenerLink = viper.GetString("google_shortener")
+
+	// Legendary check period
+	o.CharacterCheckPeriod = viper.GetDuration("character_check_period")
+	o.LegendaryCheckPeriod = viper.GetDuration("legendary_check_period")
+	o.LegendaryRelevancePeriod = viper.GetDuration("legendary_rel_period")
 
 	// SimC
 	o.SimcDir = viper.GetString("simc.dir")

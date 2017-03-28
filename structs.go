@@ -1,6 +1,7 @@
 package main
 
 import "time"
+import "sync"
 
 // Public maps
 var ()
@@ -14,14 +15,16 @@ type Options struct {
 	SSHAddress string
 	SSHUser    string
 
+	LegendaryCheckPeriod     time.Duration
+	CharacterCheckPeriod     time.Duration
+	LegendaryRelevancePeriod time.Duration
+
 	SimcDir           string
 	SimcCmdStable     string
 	SimcCmdPtr        string
 	SimcArgsImport    string
 	SimcArgsNoStats   string
 	SimcArgsWithStats string
-
-	Bucket string
 
 	Admins []string
 
@@ -112,29 +115,25 @@ type Realms struct {
 
 // GuildInfo - struct for WoW guild information
 type GuildInfo struct {
-	LastModified      int64       `json:"lastModified"`
-	Name              string      `json:"name"`
-	Realm             string      `json:"realm"`
-	BattleGroup       string      `json:"battlegroup"`
-	Level             int         `json:"level"`
-	SideInt           int         `json:"side"`
-	AchievementPoints int         `json:"achievementPoints"`
-	GuildMembersList  MembersList `json:"members"`
-	GuildNewsList     NewsList    `json:"news"`
+	LastModified      int64          `json:"lastModified"`
+	Name              string         `json:"name"`
+	Realm             string         `json:"realm"`
+	BattleGroup       string         `json:"battlegroup"`
+	Level             int            `json:"level"`
+	SideInt           int            `json:"side"`
+	AchievementPoints int            `json:"achievementPoints"`
+	MembersList       []*GuildMember `json:"members"`
+	NewsList          []*News        `json:"news"`
 
-	Side string
+	Side string `json:"-"`
 }
-
-// MembersList - type for a slice of GuildMember
-type MembersList []GuildMember
-
-// NewsList - type for a slice of News
-type NewsList []News
 
 // GuildMember - struct for a WoW guild member
 type GuildMember struct {
-	Char Character `json:"character"`
-	Rank int       `json:"rank"`
+	Char *Character `json:"character"`
+	Rank int        `json:"rank"`
+
+	sync.RWMutex
 }
 
 // Achievement - struct for a WoW achievement
@@ -168,7 +167,7 @@ type Item struct {
 	Equippable bool   `json:"equippable"`
 	ReqLevel   int    `json:"requiredLevel"`
 
-	Link string
+	Link string `json:"-"`
 }
 
 // Character - struct for a WoW character
@@ -176,9 +175,9 @@ type Character struct {
 	Name              string         `json:"name"`
 	Realm             string         `json:"realm"`
 	BattleGroup       string         `json:"battlegroup"`
-	ClassInt          int            `json:"class"`
-	RaceInt           int            `json:"race"`
-	GenderInt         int            `json:"gender"`
+	ClassInt          int64          `json:"class"`
+	RaceInt           int64          `json:"race"`
+	GenderInt         int64          `json:"gender"`
 	Level             int            `json:"level"`
 	AchievementPoints int            `json:"achievementPoints"`
 	Thumbnail         string         `json:"thumbnail"`
@@ -187,18 +186,18 @@ type Character struct {
 	Guild             string         `json:"guild"`
 	GuildRealm        string         `json:"guildRealm"`
 	LastModified      int64          `json:"lastModified"`
-	FactionInt        int            `json:"faction"`
+	FactionInt        int64          `json:"faction"`
 	Items             Items          `json:"items"`
 	Professions       Professions    `json:"professions"`
-	Feed              NewsList       `json:"feed"`
+	NewsFeed          []*News        `json:"feed"`
 	HonorableKills    int            `json:"totalHonorableKills"`
 
-	RealmSlug string
-	Faction   string
-	Class     string
-	Race      string
-	Gender    string
-	Link      string
+	RealmSlug string `json:"-"`
+	Faction   string `json:"-"`
+	Class     string `json:"-"`
+	Race      string `json:"-"`
+	Gender    string `json:"-"`
+	Link      string `json:"-"`
 }
 
 // Specialization - struct for a WoW character specialization
@@ -217,23 +216,23 @@ type Items struct {
 	AvgItemLvlEq int `json:"averageItemLevelEquipped"`
 }
 
-// Professions - struct for professions info for a character
+// Professions - struct for all professions for a character
 type Professions struct {
-	PrimaryProfs   []Profession `json:"primary"`
-	SecondaryProfs []Profession `json:"secondary"`
+	Primary   []*Profession `json:"primary"`
+	Secondary []*Profession `json:"secondary"`
 }
 
 // Profession - struct for a profession info for a character
 type Profession struct {
-	ID      int    `json:"id"`
+	ID      int64  `json:"id"`
 	Name    string `json:"name"`
 	Icon    string `json:"icon"`
 	Rank    int    `json:"rank"`
 	Max     int    `json:"max"`
 	Recipes []int  `json:"recipes"`
 
-	EngName string
-	Link    string
+	EngName string `json:"-"`
+	Link    string `json:"-"`
 }
 
 // News - struct for any WoW news
@@ -250,11 +249,12 @@ type News struct {
 	Quantity    int         `json:"quantity"`
 	Name        string      `json:"name"`
 
-	EventTime time.Time
-	ItemInfo  Item
+	EventTime time.Time `json:"-"`
+	ItemInfo  *Item     `json:"-"`
 }
 
-type googlAPIResponse struct {
+// URLShortenerAPIResponse struct is needed for goo.gl URL shortener API
+type URLShortenerAPIResponse struct {
 	Kind    string `json:"kind"`
 	ID      string `json:"id"`
 	LongURL string `json:"longUrl"`

@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 // GetJSONResponse - synced function for getting the GET request response in form of JSON
@@ -53,6 +56,24 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 		return nil, err
 	}
 	return body, nil
+}
+
+// GetShortLink returns a short link to the long one from goo.gl
+func GetShortLink(longLink string) (shortLink string, err error) {
+	var respJSON []byte
+
+	gURL := fmt.Sprintf(o.GoogleShortenerLink, o.GoogleToken)
+
+	if respJSON, err = PostJSONResponse(gURL, longLink); err != nil {
+		glog.Errorf("Unable to post JSON response to Google: %s", err)
+		return
+	}
+
+	if shortLink, err = GetURLFromJSON(respJSON); err != nil {
+		glog.Errorf("Unable to get URL from JSON: %s", err)
+	}
+
+	return
 }
 
 // DownloadFile gets the file from the URL and saves to the set path

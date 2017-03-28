@@ -4,10 +4,94 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode"
+	"sync"
+
+	"time"
 
 	"github.com/golang/glog"
 )
+
+func (b *Bot) guildWatcher() {
+	var (
+		wg  sync.WaitGroup
+		err error
+	)
+
+	for {
+		b.CharMutex.Lock()
+
+		b.HighLvlCharacters = make(map[string]*Character)
+
+		if b.Guild, err = GetGuildInfo(); err != nil {
+			glog.Errorf("Unable to get the guild info: %s", err)
+			goto out
+		}
+
+		wg.Add(len(b.Guild.MembersList))
+		for _, member := range b.Guild.MembersList {
+			go member.Char.UpdateCharacter(&wg)
+			if member.Char.Level > 100 {
+				b.HighLvlCharacters[member.Char.Name] = member.Char
+			}
+		}
+		wg.Wait()
+		glog.Info("Characters imported")
+
+	out:
+		b.CharMutex.Unlock()
+		time.Sleep(o.CharacterCheckPeriod)
+	}
+}
+
+func (b *Bot) legendaryWatcher() {
+	var (
+		wg  sync.WaitGroup
+		err error
+	)
+
+	// wait a bit for a guild watcher to launch
+	time.Sleep(time.Second)
+
+	for {
+		b.CharMutex.Lock()
+
+		wg.Add(len(b.HighLvlCharacters))
+		for _, char := range b.HighLvlCharacters {
+			go func(c *Character) {
+				if err = c.SetCharacterNewsFeed(); err != nil {
+					glog.Errorf("Unable to set news feed for a character %s: %s", c.Name, err)
+					wg.Done()
+					return
+				}
+
+				for _, l := range c.GetRecentLegendaries() {
+					if !b.checkForLegendary(c.Name, l.ID) {
+						b.LegendariesByChar[c.Name] = append(b.LegendariesByChar[c.Name], l)
+						msg := fmt.Sprintf(m.Legendary, c.Name, l.Name, l.Link)
+						b.SendMessage(o.GeneralChannelID, msg)
+						// glog.Info(msg)
+					}
+				}
+
+				wg.Done()
+			}(char)
+		}
+		wg.Wait()
+		glog.Info("Characters checked for legendaries")
+
+		b.CharMutex.Unlock()
+		time.Sleep(o.LegendaryCheckPeriod)
+	}
+}
+
+func (b *Bot) checkForLegendary(charName string, itemID int) bool {
+	for _, l := range b.LegendariesByChar[charName] {
+		if l.ID == itemID {
+			return true
+		}
+	}
+	return false
+}
 
 // GetRealmStatus - function for receiving realm status
 func GetRealmStatus(realmName string) (bool, error) {
@@ -15,11 +99,13 @@ func GetRealmStatus(realmName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, r := range *realms {
+
+	for _, r := range realms.RealmList {
 		if r.Name == realmName || r.Slug == realmName {
 			return r.Status, nil
 		}
 	}
+
 	return false, errors.New("No such realm is present")
 }
 
@@ -29,11 +115,13 @@ func GetRealmQueueStatus(realmName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, r := range *realms {
+
+	for _, r := range realms.RealmList {
 		if r.Name == realmName || r.Slug == realmName {
 			return r.Queue, nil
 		}
 	}
+
 	return false, errors.New("No such realm is present")
 }
 
@@ -57,8 +145,22 @@ func GetRealmSlug(realmName string) (string, error) {
 	return realm.Slug, nil
 }
 
-// GetGuildMembers - function for receiving a list of guild members
-func GetGuildMembers(realmName, guildName string, params []string) (members []map[string]string, err error) {
+// GetGuildInfo - function for receiving the guild info
+func GetGuildInfo() (gInfo *GuildInfo, err error) {
+	var membersJSON []byte
+
+	apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(o.GuildRealm, " ", "%20", -1),
+		strings.Replace(o.GuildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
+	if membersJSON, err = GetJSONResponse(apiLink); err != nil {
+		glog.Errorf("Unable to get guild info: %s", err)
+		return
+	}
+
+	gInfo = new(GuildInfo)
+	if err = gInfo.Unmarshal(membersJSON); err != nil {
+		glog.Errorf("Unable to unmarshal guild info: %s", err)
+	}
+
 	return
 }
 
@@ -92,52 +194,4 @@ func GetRealmAndGuildNames(message string, command string) (string, string, erro
 // GetDefaultRealmAndGuildNames returns default realm and guild name strings
 func GetDefaultRealmAndGuildNames() (string, string) {
 	return o.GuildRealm, o.GuildName
-}
-
-func getRealms() (*[]Realm, error) {
-	apiLink := fmt.Sprintf(o.APIRealmsLink, o.GuildRegion, o.GuildLocale, o.WoWToken)
-	respJSON, err := GetJSONResponse(apiLink)
-	if err != nil {
-		glog.Error(err)
-		return nil, err
-	}
-	var realms Realms
-	if err = realms.unmarshal(&respJSON); err != nil {
-		return nil, err
-	}
-	return &realms.RealmList, nil
-}
-
-func getRealmByName(realmName string) (Realm, error) {
-	if !strings.Contains(realmName, " ") {
-		realmName = splitStringByCase(realmName)
-	}
-	glog.Infof("getRealmByName: %s", realmName)
-	realms, err := getRealms()
-	if err != nil {
-		return *new(Realm), err
-	}
-	for _, r := range *realms {
-		if strings.ToLower(r.Name) == strings.ToLower(realmName) ||
-			strings.ToLower(r.Slug) == strings.ToLower(realmName) {
-			return r, nil
-		}
-	}
-	return *new(Realm), errors.New("No such realm is present")
-}
-
-func splitStringByCase(splitString string) (result string) {
-	l := 0
-	for s := splitString; s != ""; s = s[l:] {
-		l = strings.IndexFunc(s[1:], unicode.IsUpper) + 1
-		if l <= 0 {
-			l = len(s)
-		}
-		if result == "" {
-			result = s[:l]
-		} else {
-			result += " " + s[:l]
-		}
-	}
-	return
 }
