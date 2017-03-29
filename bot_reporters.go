@@ -306,6 +306,7 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 		AddColumn("Армори", 22, fmttab.AlignLeft)
 	b.CharMutex.Lock()
 	for _, char := range b.HighLvlCharacters {
+		char.RLock()
 		tab.AppendData(map[string]interface{}{
 			"Имя":           char.Name,
 			"Уровень":       char.Level,
@@ -314,6 +315,7 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 			"iLevel":        char.Items.AvgItemLvlEq,
 			"Армори":        char.Link,
 		})
+		char.Unlock()
 	}
 	b.CharMutex.Unlock()
 	b.SendMessage(mes.ChannelID, "```"+tab.String()+"```")

@@ -132,8 +132,6 @@ type GuildInfo struct {
 type GuildMember struct {
 	Char *Character `json:"character"`
 	Rank int        `json:"rank"`
-
-	sync.RWMutex
 }
 
 // Achievement - struct for a WoW achievement
@@ -198,6 +196,8 @@ type Character struct {
 	Race      string `json:"-"`
 	Gender    string `json:"-"`
 	Link      string `json:"-"`
+
+	sync.RWMutex
 }
 
 // Specialization - struct for a WoW character specialization
@@ -251,6 +251,8 @@ type News struct {
 
 	EventTime time.Time `json:"-"`
 	ItemInfo  *Item     `json:"-"`
+
+	sync.RWMutex
 }
 
 // URLShortenerAPIResponse struct is needed for goo.gl URL shortener API

@@ -15,9 +15,13 @@ import (
 func (char *Character) UpdateCharacter(wg *sync.WaitGroup) {
 	var err error
 
+	char.Lock()
+
 	char.Class = o.WoWClasses[char.ClassInt]
 	char.Gender = o.WoWGenders[char.GenderInt]
 	char.Race = o.WoWRaces[char.RaceInt]
+
+	char.Unlock()
 
 	if err = char.SetRealmSlugByName(); err != nil {
 		glog.Errorf("Unable to get realm slug for character %s: %s", char.Name, err)
@@ -44,6 +48,9 @@ func (char *Character) UpdateCharacter(wg *sync.WaitGroup) {
 func (char *Character) SetRealmSlugByName() (err error) {
 	var realms Realms
 
+	char.Lock()
+	defer char.Unlock()
+
 	if realms, err = getRealms(); err != nil {
 		return
 	}
@@ -62,6 +69,9 @@ func (char *Character) SetRealmSlugByName() (err error) {
 func (char *Character) SetArmoryLink() (err error) {
 	var shortLink string
 
+	char.Lock()
+	defer char.Unlock()
+
 	longLink := fmt.Sprintf(o.ArmoryCharLink, o.GuildRegion, o.GuildLocale[:2], char.RealmSlug, char.Name)
 	if shortLink, err = GetShortLink(longLink); err != nil {
 		glog.Errorf("Unable to get short link for a character: %s", err)
@@ -75,9 +85,10 @@ func (char *Character) SetArmoryLink() (err error) {
 
 // SetCharacterItems gets the character items and sets them into the character
 func (char *Character) SetCharacterItems() (err error) {
-	var (
-		respJSON []byte
-	)
+	var respJSON []byte
+
+	char.Lock()
+	defer char.Unlock()
 
 	apiLink := fmt.Sprintf(o.APICharItemsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
@@ -95,9 +106,10 @@ func (char *Character) SetCharacterItems() (err error) {
 
 // SetCharacterProfessions gets the character professions and sets them into the character
 func (char *Character) SetCharacterProfessions() (err error) {
-	var (
-		respJSON []byte
-	)
+	var respJSON []byte
+
+	char.Lock()
+	defer char.Unlock()
 
 	apiLink := fmt.Sprintf(o.APICharProfsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
@@ -133,9 +145,11 @@ func (char *Character) SetCharacterProfessions() (err error) {
 func (char *Character) SetCharacterNewsFeed() (err error) {
 	var (
 		respJSON []byte
-
-		wg sync.WaitGroup
+		wg       sync.WaitGroup
 	)
+
+	char.Lock()
+	defer char.Unlock()
 
 	apiLink := fmt.Sprintf(o.APICharNewsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		strings.Replace(char.Name, " ", "%20", -1), o.GuildLocale, o.WoWToken)
@@ -162,6 +176,8 @@ func (char *Character) SetCharacterNewsFeed() (err error) {
 func (char *Character) GetRecentLegendaries() (items []*Item) {
 	var item *Item
 
+	char.RLock()
+
 	now := time.Now()
 	before := now.Add(-o.LegendaryRelevancePeriod)
 
@@ -178,33 +194,39 @@ func (char *Character) GetRecentLegendaries() (items []*Item) {
 		}
 	}
 
+	char.RUnlock()
+
 	return
 }
 
 func (n *News) updateNews(wg *sync.WaitGroup) {
 	var (
-		utc *time.Location
-		err error
+		utc       *time.Location
+		eventTime time.Time
+		err       error
 	)
+
+	n.Lock()
 
 	if utc, err = time.LoadLocation(o.GuildTimezone); err != nil {
 		glog.Errorf("Unable to parse location: %s", err)
-		return
+		goto out
 	}
 
-	eventTime := time.Unix(n.Timestamp/1000, 0)
+	eventTime = time.Unix(n.Timestamp/1000, 0)
 	n.EventTime = eventTime.In(utc)
 
 	if n.Type == "itemLoot" || n.Type == "LOOT" {
 		item, err := getItemByID(strconv.Itoa(n.ItemID))
-		if err != nil {
+		if err == nil {
 			glog.Errorf("Unable to get item by its ID = %d: %s", n.ItemID, err)
-			return
+			goto out
 		}
 		n.ItemInfo = item
 	}
 
+out:
+	n.Unlock()
 	wg.Done()
-
 	return
 }

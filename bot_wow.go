@@ -29,10 +29,13 @@ func (b *Bot) guildWatcher() {
 
 		wg.Add(len(b.Guild.MembersList))
 		for _, member := range b.Guild.MembersList {
-			go member.Char.UpdateCharacter(&wg)
+			member.Char.RLock()
 			if member.Char.Level > 100 {
 				b.HighLvlCharacters[member.Char.Name] = member.Char
 			}
+			member.Char.RUnlock()
+
+			go member.Char.UpdateCharacter(&wg)
 		}
 		wg.Wait()
 		glog.Info("Characters imported")
@@ -65,12 +68,14 @@ func (b *Bot) legendaryWatcher() {
 				}
 
 				for _, l := range c.GetRecentLegendaries() {
+					c.RLock()
 					if !b.checkForLegendary(c.Name, l.ID) {
 						b.LegendariesByChar[c.Name] = append(b.LegendariesByChar[c.Name], l)
 						msg := fmt.Sprintf(m.Legendary, c.Name, l.Name, l.Link)
-						b.SendMessage(o.GeneralChannelID, msg)
-						// glog.Info(msg)
+						// b.SendMessage(o.GeneralChannelID, msg)
+						glog.Info(msg)
 					}
+					c.RUnlock()
 				}
 
 				wg.Done()
