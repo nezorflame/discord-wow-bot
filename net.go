@@ -22,7 +22,7 @@ func GetJSONResponse(url string, count int) ([]byte, error) {
 
 	r, err := http.Get(url)
 	if err != nil {
-		glog.Warningf("Unable to get JSON response: %s", r.Status)
+		// some Get error, retrying
 		time.Sleep(1 * time.Second)
 		return GetJSONResponse(url, count)
 	}
