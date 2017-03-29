@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -17,7 +16,7 @@ import (
 // GetJSONResponse - recursive function for getting the GET request response in form of JSON
 func GetJSONResponse(url string, count int) ([]byte, error) {
 	if count == 5 {
-		return nil, errors.New("Too much retries")
+		return []byte{}, errors.New("Too much retries")
 	}
 	count++
 
@@ -29,20 +28,24 @@ func GetJSONResponse(url string, count int) ([]byte, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == 403 {
+		// forbidden by API, need to wait more
+		time.Sleep(1 * time.Second)
+		count--
+		return GetJSONResponse(url, count)
+	}
+
 	if r.StatusCode > 400 {
-		glog.Warningf("Got an error while getting JSON response: %s", r.Status)
+		// some other error, retrying
 		time.Sleep(1 * time.Second)
 		return GetJSONResponse(url, count)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		glog.Warningf("Got an error while reading JSON response: %s", err)
-		time.Sleep(1 * time.Second)
+		// some strange error, retrying
 		return GetJSONResponse(url, count)
 	}
-
-	time.Sleep(10 * time.Millisecond)
 
 	return body, nil
 }
@@ -59,7 +62,7 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 		return nil, err
 	}
 	defer r.Body.Close()
-	if strings.Contains(r.Status, "404") {
+	if r.StatusCode == 404 {
 		return nil, errors.New(r.Status)
 	}
 	body, err := ioutil.ReadAll(r.Body)
