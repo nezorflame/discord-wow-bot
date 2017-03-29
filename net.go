@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -59,7 +60,17 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "close")
-	client := &http.Client{}
+
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   0,
+			KeepAlive: 0,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+	client := &http.Client{Transport: transport}
+
 	r, err := client.Do(req)
 	if err != nil {
 		return nil, err
