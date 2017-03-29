@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,19 +16,25 @@ import (
 // GetJSONResponse - recursive function for getting the GET request response in form of JSON
 func GetJSONResponse(url string, count int) ([]byte, error) {
 	if count == 5 {
-		return []byte{}, errors.New("Too much retries")
+		return []byte{}, fmt.Errorf("Too much retries")
 	}
 	count++
 
-	r, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return []byte{}, fmt.Errorf("Unable to create GET request: %s", err)
+	}
+	req.Header.Set("Connection", "close")
+
+	client := newClient()
+
+	r, err := client.Do(req)
 	if err != nil {
 		// some Get error, retrying
 		time.Sleep(1 * time.Second)
 		return GetJSONResponse(url, count)
 	}
 	defer r.Body.Close()
-
-	r.Close = true
 
 	if r.StatusCode == 403 {
 		// forbidden by API, need to wait more
@@ -58,18 +63,14 @@ func GetJSONResponse(url string, count int) ([]byte, error) {
 func PostJSONResponse(url, value string) ([]byte, error) {
 	var jsonStr = []byte(`{"longUrl": "` + value + `"}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		return []byte{}, fmt.Errorf("Unable to create GET request: %s", err)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "close")
 
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   0,
-			KeepAlive: 0,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
-	client := &http.Client{Transport: transport}
+	client := newClient()
 
 	r, err := client.Do(req)
 	if err != nil {
@@ -78,7 +79,7 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == 404 {
-		return nil, errors.New(r.Status)
+		return nil, fmt.Errorf(r.Status)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -130,4 +131,16 @@ func DownloadFile(filepath string, url string) (err error) {
 	}
 
 	return nil
+}
+
+func newClient() *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   0,
+			KeepAlive: 0,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+	return &http.Client{Transport: transport}
 }
