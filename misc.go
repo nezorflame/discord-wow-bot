@@ -30,10 +30,7 @@ func (r *Realms) Unmarshal(body []byte) error {
 
 // Unmarshal makes the Character from the []byte
 func (c *Character) Unmarshal(body []byte) (err error) {
-	c.Lock()
-	err = json.Unmarshal(body, c)
-	c.Unlock()
-	return
+	return json.Unmarshal(body, c)
 }
 
 // Unmarshal makes the Item from the []byte

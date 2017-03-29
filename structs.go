@@ -1,10 +1,9 @@
 package main
 
-import "time"
-import "sync"
-
-// Public maps
-var ()
+import (
+	"sync"
+	"time"
+)
 
 // Options struct holds all the options
 type Options struct {

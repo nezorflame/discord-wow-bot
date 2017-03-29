@@ -142,11 +142,15 @@ func (char *Character) SetCharacterProfessions() (err error) {
 }
 
 // SetCharacterNewsFeed gets the character news feed and sets it into the character
-func (char *Character) SetCharacterNewsFeed() (err error) {
+func (char *Character) SetCharacterNewsFeed(mainWG *sync.WaitGroup) {
 	var (
 		respJSON []byte
-		wg       sync.WaitGroup
+
+		wg  sync.WaitGroup
+		err error
 	)
+
+	defer mainWG.Done()
 
 	char.Lock()
 	defer char.Unlock()
@@ -168,8 +172,6 @@ func (char *Character) SetCharacterNewsFeed() (err error) {
 		go n.updateNews(&wg)
 	}
 	wg.Wait()
-
-	return
 }
 
 // GetRecentLegendaries check the character news feed and gets legendaries from it for a time period
@@ -218,7 +220,7 @@ func (n *News) updateNews(wg *sync.WaitGroup) {
 
 	if n.Type == "itemLoot" || n.Type == "LOOT" {
 		item, err := getItemByID(strconv.Itoa(n.ItemID))
-		if err == nil {
+		if err != nil {
 			glog.Errorf("Unable to get item by its ID = %d: %s", n.ItemID, err)
 			goto out
 		}

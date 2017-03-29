@@ -47,10 +47,7 @@ func (b *Bot) guildWatcher() {
 }
 
 func (b *Bot) legendaryWatcher() {
-	var (
-		wg  sync.WaitGroup
-		err error
-	)
+	var wg sync.WaitGroup
 
 	// wait a bit for a guild watcher to launch
 	time.Sleep(time.Second)
@@ -60,28 +57,27 @@ func (b *Bot) legendaryWatcher() {
 
 		wg.Add(len(b.HighLvlCharacters))
 		for _, char := range b.HighLvlCharacters {
-			go func(c *Character) {
-				if err = c.SetCharacterNewsFeed(); err != nil {
-					glog.Errorf("Unable to set news feed for a character %s: %s", c.Name, err)
-					wg.Done()
-					return
-				}
-
-				for _, l := range c.GetRecentLegendaries() {
-					c.RLock()
-					if !b.checkForLegendary(c.Name, l.ID) {
-						b.LegendariesByChar[c.Name] = append(b.LegendariesByChar[c.Name], l)
-						msg := fmt.Sprintf(m.Legendary, c.Name, l.Name, l.Link)
-						// b.SendMessage(o.GeneralChannelID, msg)
-						glog.Info(msg)
-					}
-					c.RUnlock()
-				}
-
-				wg.Done()
-			}(char)
+			go char.SetCharacterNewsFeed(&wg)
 		}
 		wg.Wait()
+
+		glog.Info("Characters updated with the latest news")
+
+		for _, char := range b.HighLvlCharacters {
+			legendaries := char.GetRecentLegendaries()
+
+			char.RLock()
+			for _, l := range legendaries {
+				if !b.checkForLegendary(char.Name, l.ID) {
+					b.LegendariesByChar[char.Name] = append(b.LegendariesByChar[char.Name], l)
+					msg := fmt.Sprintf(m.Legendary, char.Name, l.Name, l.Link)
+					b.SendMessage(o.GeneralChannelID, msg)
+					// glog.Info(msg)
+				}
+			}
+			char.RUnlock()
+		}
+
 		glog.Info("Characters checked for legendaries")
 
 		b.CharMutex.Unlock()
