@@ -152,7 +152,7 @@ func GetGuildInfo() (gInfo *GuildInfo, err error) {
 
 	apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(o.GuildRealm, " ", "%20", -1),
 		strings.Replace(o.GuildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
-	if membersJSON, err = GetJSONResponse(apiLink); err != nil {
+	if membersJSON, err = GetJSONResponse(apiLink, 0); err != nil {
 		glog.Errorf("Unable to get guild info: %s", err)
 		return
 	}

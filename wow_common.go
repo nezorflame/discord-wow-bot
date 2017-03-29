@@ -12,7 +12,7 @@ func getRealms() (realms Realms, err error) {
 	var respJSON []byte
 
 	apiLink := fmt.Sprintf(o.APIRealmsLink, o.GuildRegion, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink); err != nil {
+	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
 		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
@@ -51,7 +51,7 @@ func getItemByID(itemID string) (item *Item, err error) {
 	var respJSON []byte
 
 	apiLink := fmt.Sprintf(o.APIItemLink, o.GuildRegion, itemID, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink); err != nil {
+	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
 		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}

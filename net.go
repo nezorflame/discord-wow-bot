@@ -14,25 +14,36 @@ import (
 	"github.com/golang/glog"
 )
 
-// GetJSONResponse - synced function for getting the GET request response in form of JSON
-func GetJSONResponse(url string) ([]byte, error) {
+// GetJSONResponse - recursive function for getting the GET request response in form of JSON
+func GetJSONResponse(url string, count int) ([]byte, error) {
+	if count == 5 {
+		return nil, errors.New("Too much retries")
+	}
+	count++
+
 	r, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		glog.Warningf("Unable to get JSON response: %s", r.Status)
+		time.Sleep(1 * time.Second)
+		return GetJSONResponse(url, count)
 	}
 	defer r.Body.Close()
-	if strings.Contains(r.Status, "404") {
-		return nil, errors.New(r.Status)
-	}
-	if strings.Contains(r.Status, "403") {
+
+	if r.StatusCode > 400 {
+		glog.Warningf("Got an error while getting JSON response: %s", r.Status)
 		time.Sleep(1 * time.Second)
-		return GetJSONResponse(url)
+		return GetJSONResponse(url, count)
 	}
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		glog.Warningf("Got an error while reading JSON response: %s", err)
+		time.Sleep(1 * time.Second)
+		return GetJSONResponse(url, count)
 	}
+
 	time.Sleep(10 * time.Millisecond)
+
 	return body, nil
 }
 
