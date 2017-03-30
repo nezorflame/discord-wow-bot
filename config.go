@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/golang/glog"
-	"github.com/golang/time/rate"
 	"github.com/spf13/viper"
+	"golang.org/x/time/rate"
 )
 
 var (

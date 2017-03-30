@@ -6,8 +6,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	"golang.org/x/time/rate"
+
 	"github.com/golang/glog"
-	"github.com/golang/time/rate"
 )
 
 // WoWBot is a Discord WoW guild bot

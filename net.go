@@ -10,8 +10,9 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/golang/glog"
-	"github.com/golang/time/rate"
 )
 
 // Get - function for getting the GET request's response in form of JSON
