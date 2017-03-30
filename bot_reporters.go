@@ -315,7 +315,7 @@ func (b *Bot) guildMembersReporter(mes *discordgo.MessageCreate) {
 			"iLevel":        char.Items.AvgItemLvlEq,
 			"Армори":        char.Link,
 		})
-		char.Unlock()
+		char.RUnlock()
 	}
 	b.CharMutex.Unlock()
 	b.SendMessage(mes.ChannelID, "```"+tab.String()+"```")
