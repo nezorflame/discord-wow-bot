@@ -83,7 +83,7 @@ func (b *Bot) legendaryWatcher() {
 			char.RUnlock()
 		}
 
-		glog.Info("Characters checked for legendaries")
+		glog.Info("Characters checked for legendaries, current item count: %d", len(WoWItemsMap))
 
 		b.CharMutex.Unlock()
 		time.Sleep(o.LegendaryCheckPeriod)
