@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/golang/glog"
+	"github.com/golang/time/rate"
 	"github.com/spf13/viper"
 )
 
@@ -69,6 +70,14 @@ func LoadConfig() {
 	o.WoWProfessions = getMapWithNames("professions")
 
 	// Blizzard
+	if o.APIRateLimit = viper.GetInt("blizzard.api_rate_limit"); o.APIRateLimit <= 0 {
+		glog.Fatal("'blizzard.api_rate_limit' must be > 0")
+	}
+	if o.APIMaxRetries = viper.GetInt("blizzard.api_max_retries"); o.APIMaxRetries <= 0 {
+		glog.Fatal("'blizzard.api_max_retries' must be > 0")
+	}
+	RateLimiter = rate.NewLimiter(rate.Limit(o.APIRateLimit), o.APIRateLimit)
+
 	o.APIRealmsLink = viper.GetString("blizzard.api_realms")
 	o.APIGuildMembersLink = viper.GetString("blizzard.api_guild_members")
 	o.APIGuildNewsLink = viper.GetString("blizzard.api_guild_news")

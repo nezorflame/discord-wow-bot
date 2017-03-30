@@ -30,9 +30,17 @@ func (b *Bot) guildWatcher() {
 		wg.Add(len(b.Guild.MembersList))
 		for _, member := range b.Guild.MembersList {
 			member.Char.RLock()
+
+			if member.Char.Name == "" {
+				glog.Errorf("Faulty character: %v", member.Char)
+				wg.Done()
+				continue
+			}
+
 			if member.Char.Level > 100 {
 				b.HighLvlCharacters[member.Char.Name] = member.Char
 			}
+
 			member.Char.RUnlock()
 
 			go member.Char.UpdateCharacter(&wg)
@@ -48,9 +56,6 @@ func (b *Bot) guildWatcher() {
 
 func (b *Bot) legendaryWatcher() {
 	var wg sync.WaitGroup
-
-	// wait a bit for a guild watcher to launch
-	time.Sleep(time.Second)
 
 	for {
 		b.CharMutex.Lock()
@@ -148,11 +153,14 @@ func GetRealmSlug(realmName string) (string, error) {
 
 // GetGuildInfo - function for receiving the guild info
 func GetGuildInfo() (gInfo *GuildInfo, err error) {
-	var membersJSON []byte
+	var (
+		membersJSON []byte
+		membersList []*GuildMember
+	)
 
 	apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(o.GuildRealm, " ", "%20", -1),
 		strings.Replace(o.GuildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
-	if membersJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if membersJSON, err = Get(apiLink); err != nil {
 		glog.Errorf("Unable to get guild info: %s", err)
 		return
 	}
@@ -161,6 +169,13 @@ func GetGuildInfo() (gInfo *GuildInfo, err error) {
 	if err = gInfo.Unmarshal(membersJSON); err != nil {
 		glog.Errorf("Unable to unmarshal guild info: %s", err)
 	}
+
+	for _, member := range gInfo.MembersList {
+		if member.Char.Name != "" {
+			membersList = append(membersList, member)
+		}
+	}
+	gInfo.MembersList = membersList
 
 	return
 }

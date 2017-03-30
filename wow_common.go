@@ -4,15 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
+)
+
+// WoW item vars
+var (
+	WoWItemsMap map[string]*Item
+	WoWItemsMtx sync.RWMutex
 )
 
 func getRealms() (realms Realms, err error) {
 	var respJSON []byte
 
 	apiLink := fmt.Sprintf(o.APIRealmsLink, o.GuildRegion, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if respJSON, err = Get(apiLink); err != nil {
 		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
@@ -48,10 +55,20 @@ func getRealmByName(realmName string) (realm Realm, err error) {
 }
 
 func getItemByID(itemID string) (item *Item, err error) {
-	var respJSON []byte
+	var (
+		respJSON []byte
+		ok       bool
+	)
+
+	WoWItemsMtx.RLock()
+	if item, ok = WoWItemsMap[itemID]; ok {
+		WoWItemsMtx.RUnlock()
+		return
+	}
+	WoWItemsMtx.RUnlock()
 
 	apiLink := fmt.Sprintf(o.APIItemLink, o.GuildRegion, itemID, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if respJSON, err = Get(apiLink); err != nil {
 		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
@@ -63,6 +80,10 @@ func getItemByID(itemID string) (item *Item, err error) {
 	}
 
 	item.Link = fmt.Sprintf(o.WowheadItemLink, itemID)
+
+	WoWItemsMtx.Lock()
+	WoWItemsMap[itemID] = item
+	WoWItemsMtx.Unlock()
 
 	return
 }

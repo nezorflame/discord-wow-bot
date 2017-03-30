@@ -52,8 +52,13 @@ func (b *Bot) Start() {
 
 	b.LegendariesByChar = make(map[string][]*Item)
 
+	WoWItemsMap = make(map[string]*Item)
+
 	glog.Info("Starting guild watcher...")
 	go b.guildWatcher()
+
+	// wait a bit for a guild watcher to start
+	time.Sleep(time.Second)
 
 	glog.Info("Starting legendaries watcher...")
 	go b.legendaryWatcher()

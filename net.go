@@ -11,15 +11,30 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/time/rate"
 )
 
-// GetJSONResponse - recursive function for getting the GET request response in form of JSON
-func GetJSONResponse(url string, count int) ([]byte, error) {
-	if count == 5 {
-		return []byte{}, fmt.Errorf("Too much retries")
-	}
-	count++
+// Get - function for getting the GET request's response in form of JSON
+func Get(url string) (result []byte, err error) {
+	var rv *rate.Reservation
 
+	for i := 0; i < o.APIMaxRetries; i++ {
+		result, err = getJSONResponse(url)
+
+		if rv = RateLimiter.Reserve(); !rv.OK() {
+			return []byte{}, fmt.Errorf("Exceeds limiter's burst")
+		}
+		rv.Delay()
+
+		if err == nil {
+			break
+		}
+	}
+
+	return
+}
+
+func getJSONResponse(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("Unable to create GET request: %s", err)
@@ -30,29 +45,17 @@ func GetJSONResponse(url string, count int) ([]byte, error) {
 
 	r, err := client.Do(req)
 	if err != nil {
-		// some Get error, retrying
-		time.Sleep(1 * time.Second)
-		return GetJSONResponse(url, count)
+		return []byte{}, err
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode == 403 {
-		// forbidden by API, need to wait more
-		time.Sleep(1 * time.Second)
-		count--
-		return GetJSONResponse(url, count)
-	}
-
 	if r.StatusCode > 400 {
-		// some other error, retrying
-		time.Sleep(1 * time.Second)
-		return GetJSONResponse(url, count)
+		return []byte{}, fmt.Errorf("GET request error - %s", r.Status)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		// some strange error, retrying
-		return GetJSONResponse(url, count)
+		return []byte{}, fmt.Errorf("Unable to read GET response: %s", err)
 	}
 
 	return body, nil
@@ -74,17 +77,17 @@ func PostJSONResponse(url, value string) ([]byte, error) {
 
 	r, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return []byte{}, err
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode == 404 {
-		return nil, fmt.Errorf(r.Status)
+		return []byte{}, fmt.Errorf(r.Status)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		return []byte{}, err
 	}
 
 	return body, nil

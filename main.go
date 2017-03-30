@@ -7,10 +7,14 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/golang/glog"
+	"github.com/golang/time/rate"
 )
 
 // WoWBot is a Discord WoW guild bot
-var WoWBot *Bot
+var (
+	WoWBot      *Bot
+	RateLimiter *rate.Limiter
+)
 
 func main() {
 	flag.Parse()

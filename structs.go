@@ -44,6 +44,8 @@ type Options struct {
 	WowheadItemLink     string
 	GoogleShortenerLink string
 
+	APIRateLimit        int
+	APIMaxRetries       int
 	APIRealmsLink       string
 	APIGuildMembersLink string
 	APIGuildNewsLink    string

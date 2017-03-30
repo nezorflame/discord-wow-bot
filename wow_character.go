@@ -16,11 +16,9 @@ func (char *Character) UpdateCharacter(wg *sync.WaitGroup) {
 	var err error
 
 	char.Lock()
-
 	char.Class = o.WoWClasses[char.ClassInt]
 	char.Gender = o.WoWGenders[char.GenderInt]
 	char.Race = o.WoWRaces[char.RaceInt]
-
 	char.Unlock()
 
 	if err = char.SetRealmSlugByName(); err != nil {
@@ -92,7 +90,7 @@ func (char *Character) SetCharacterItems() (err error) {
 
 	apiLink := fmt.Sprintf(o.APICharItemsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if respJSON, err = Get(apiLink); err != nil {
 		return
 	}
 
@@ -110,7 +108,7 @@ func (char *Character) SetCharacterProfessions() (err error) {
 
 	apiLink := fmt.Sprintf(o.APICharProfsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if respJSON, err = Get(apiLink); err != nil {
 		return
 	}
 
@@ -152,7 +150,7 @@ func (char *Character) SetCharacterNewsFeed(mainWG *sync.WaitGroup) {
 
 	apiLink := fmt.Sprintf(o.APICharNewsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		strings.Replace(char.Name, " ", "%20", -1), o.GuildLocale, o.WoWToken)
-	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
+	if respJSON, err = Get(apiLink); err != nil {
 		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
