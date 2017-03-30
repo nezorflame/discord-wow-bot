@@ -6,15 +6,12 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"golang.org/x/time/rate"
-
 	"github.com/golang/glog"
 )
 
 // WoWBot is a Discord WoW guild bot
 var (
-	WoWBot      *Bot
-	RateLimiter *rate.Limiter
+	WoWBot *Bot
 )
 
 func main() {

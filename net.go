@@ -10,24 +10,15 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/golang/glog"
 )
 
 // Get - function for getting the GET request's response in form of JSON
 func Get(url string) (result []byte, err error) {
-	var rv *rate.Reservation
-
 	for i := 0; i < o.APIMaxRetries; i++ {
-		result, err = getJSONResponse(url)
+		RateLimiter.Wait(1)
 
-		if rv = RateLimiter.Reserve(); !rv.OK() {
-			return []byte{}, fmt.Errorf("Exceeds limiter's burst")
-		}
-		rv.Delay()
-
-		if err == nil {
+		if result, err = getJSONResponse(url); err == nil {
 			break
 		}
 	}

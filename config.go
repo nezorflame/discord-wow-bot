@@ -2,13 +2,15 @@ package main
 
 import (
 	"github.com/golang/glog"
+	rate "github.com/juju/ratelimit"
 	"github.com/spf13/viper"
-	"golang.org/x/time/rate"
 )
 
 var (
 	o = &Options{}
 	m = &Messages{}
+	// RateLimiter for GET requests to WoW API
+	RateLimiter *rate.Bucket
 )
 
 // LoadConfig loads the config from the config.toml
@@ -70,13 +72,13 @@ func LoadConfig() {
 	o.WoWProfessions = getMapWithNames("professions")
 
 	// Blizzard
-	if o.APIRateLimit = viper.GetInt("blizzard.api_rate_limit"); o.APIRateLimit <= 0 {
+	if o.APIRateLimit = viper.GetInt64("blizzard.api_rate_limit"); o.APIRateLimit <= 0 {
 		glog.Fatal("'blizzard.api_rate_limit' must be > 0")
 	}
 	if o.APIMaxRetries = viper.GetInt("blizzard.api_max_retries"); o.APIMaxRetries <= 0 {
 		glog.Fatal("'blizzard.api_max_retries' must be > 0")
 	}
-	RateLimiter = rate.NewLimiter(rate.Limit(o.APIRateLimit), o.APIRateLimit)
+	RateLimiter = rate.NewBucketWithRate(float64(o.APIRateLimit), o.APIRateLimit)
 
 	o.APIRealmsLink = viper.GetString("blizzard.api_realms")
 	o.APIGuildMembersLink = viper.GetString("blizzard.api_guild_members")
