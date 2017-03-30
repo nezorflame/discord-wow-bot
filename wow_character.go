@@ -93,13 +93,10 @@ func (char *Character) SetCharacterItems() (err error) {
 	apiLink := fmt.Sprintf(o.APICharItemsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
 	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
-		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
 
-	if err = char.Unmarshal(respJSON); err != nil {
-		glog.Errorf("Unable to unmarshal character from JSON: %s", err)
-	}
+	err = char.Unmarshal(respJSON)
 
 	return
 }
@@ -114,12 +111,10 @@ func (char *Character) SetCharacterProfessions() (err error) {
 	apiLink := fmt.Sprintf(o.APICharProfsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		char.Name, o.GuildLocale, o.WoWToken)
 	if respJSON, err = GetJSONResponse(apiLink, 0); err != nil {
-		glog.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
 
 	if err = char.Unmarshal(respJSON); err != nil {
-		glog.Errorf("Unable to unmarshal character from JSON: %s", err)
 		return
 	}
 
