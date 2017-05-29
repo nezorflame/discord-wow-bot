@@ -389,7 +389,7 @@ func (b *Bot) cleanUp(mes *discordgo.MessageCreate) {
 		return
 	}
 	lastMessageChecked := mes.ID
-	chanMessages, _ := b.Session.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "")
+	chanMessages, _ := b.Session.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "", "")
 	mesToDelete := make(map[string]string)
 	for {
 		if len(mesToDelete) == amount {
@@ -407,7 +407,7 @@ func (b *Bot) cleanUp(mes *discordgo.MessageCreate) {
 				}
 			}
 		}
-		chm, _ := b.Session.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "")
+		chm, _ := b.Session.ChannelMessages(mes.ChannelID, 100, lastMessageChecked, "", "")
 		if compareMesArrays(chm, chanMessages) {
 			glog.Info("Reached the end, exiting loop...")
 			break

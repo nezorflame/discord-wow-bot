@@ -27,9 +27,10 @@ _testmain.go
 .vscode/
 .idea/
 
-# ignore binaries and db
+# ignore binaries and vendoring
 discord-wow-bot
 debug
+vendor/*
 
 my.db
 config.toml

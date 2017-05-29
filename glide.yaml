@@ -1,0 +1,10 @@
+package: github.com/nezorflame/discord-wow-bot
+import:
+- package: github.com/arteev/fmttab
+- package: github.com/bwmarrin/discordgo
+- package: github.com/fiam/gounidecode
+  subpackages:
+  - unidecode
+- package: github.com/golang/glog
+- package: github.com/juju/ratelimit
+- package: github.com/spf13/viper
