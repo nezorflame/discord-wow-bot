@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/golang/glog"
 	rate "github.com/juju/ratelimit"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var (
@@ -14,25 +14,25 @@ var (
 )
 
 // LoadConfig loads the config from the config.toml
-func LoadConfig() {
+func LoadConfig(sl *zap.SugaredLogger) {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/opt/bot")
 
-	glog.Info("Loading configuration...")
+	sl.Info("Loading configuration...")
 	if err := viper.ReadInConfig(); err != nil {
-		glog.Fatalf("Unable to load config: %s", err)
+		sl.Fatalf("Unable to load config: %s", err)
 	}
 
 	// Mandatory tokens
 	if o.DiscordToken = viper.GetString("discord_token"); o.DiscordToken == "" {
-		glog.Fatal("'discord_token' must be present")
+		sl.Fatal("'discord_token' must be present")
 	}
 	if o.WoWToken = viper.GetString("wow_token"); o.WoWToken == "" {
-		glog.Fatal("'wow_token' must be present")
+		sl.Fatal("'wow_token' must be present")
 	}
 	if o.GoogleToken = viper.GetString("google_token"); o.GoogleToken == "" {
-		glog.Fatal("'google_token' must be present")
+		sl.Fatal("'google_token' must be present")
 	}
 
 	// Links
@@ -73,10 +73,10 @@ func LoadConfig() {
 
 	// Blizzard
 	if o.APIRateLimit = viper.GetInt64("blizzard.api_rate_limit"); o.APIRateLimit <= 0 {
-		glog.Fatal("'blizzard.api_rate_limit' must be > 0")
+		sl.Fatal("'blizzard.api_rate_limit' must be > 0")
 	}
 	if o.APIMaxRetries = viper.GetInt("blizzard.api_max_retries"); o.APIMaxRetries <= 0 {
-		glog.Fatal("'blizzard.api_max_retries' must be > 0")
+		sl.Fatal("'blizzard.api_max_retries' must be > 0")
 	}
 	RateLimiter = rate.NewBucketWithRate(float64(o.APIRateLimit), o.APIRateLimit)
 
@@ -122,7 +122,7 @@ func LoadConfig() {
 	m.SimcImportSuccess = viper.GetString("messages.simc_import_success")
 	m.SimcProfile = viper.GetString("messages.simc_profile")
 
-	glog.Info("Configuration is loaded successfully")
+	sl.Info("Configuration is loaded successfully")
 }
 
 func getMapWithNames(confName string) (confMap map[int64]string) {

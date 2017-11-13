@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"github.com/pkg/errors"
 )
 
 // WoW item vars
@@ -20,12 +19,12 @@ func getRealms() (realms Realms, err error) {
 
 	apiLink := fmt.Sprintf(o.APIRealmsLink, o.GuildRegion, o.GuildLocale, o.WoWToken)
 	if respJSON, err = Get(apiLink); err != nil {
-		glog.Errorf("Unable to get JSON response: %s", err)
+		errors.Wrap(err, "Unable to get JSON response")
 		return
 	}
 
 	if err = realms.Unmarshal(respJSON); err != nil {
-		glog.Errorf("Unable to unmarshal realms from JSON: %s", err)
+		errors.Wrap(err, "Unable to unmarshal realms from JSON")
 	}
 
 	return
@@ -69,13 +68,13 @@ func getItemByID(itemID string) (item *Item, err error) {
 
 	apiLink := fmt.Sprintf(o.APIItemLink, o.GuildRegion, itemID, o.GuildLocale, o.WoWToken)
 	if respJSON, err = Get(apiLink); err != nil {
-		glog.Errorf("Unable to get JSON response: %s", err)
+		errors.Wrap(err, "Unable to get JSON response")
 		return
 	}
 
 	item = new(Item)
 	if err = item.Unmarshal(respJSON); err != nil {
-		glog.Info(err)
+		errors.Wrap(err, "Unable to unmarshal item from JSON")
 		return
 	}
 

@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/bwmarrin/discordgo"
-	"github.com/golang/glog"
 )
 
 // Bot struct for the Discord bot
@@ -20,6 +21,8 @@ type Bot struct {
 	LegendariesByChar map[string][]*Item
 
 	CharMutex sync.Mutex
+
+	SL *zap.SugaredLogger
 }
 
 // Start launches the connection to the bot
@@ -29,52 +32,52 @@ func (b *Bot) Start() {
 		u   *discordgo.User
 	)
 
-	glog.Info("Logging in...")
+	b.SL.Info("Logging in...")
 	if b.Session, err = discordgo.New(o.DiscordToken); err != nil {
-		glog.Fatalf("Unable to connect to Discord: %s", err)
+		b.SL.Fatalf("Unable to connect to Discord: %s", err)
 	}
 
-	glog.Info("Using bot account token...")
+	b.SL.Info("Using bot account token...")
 	if u, err = b.Session.User("@me"); err != nil {
-		glog.Fatalf("Unable to get @me: %s", err)
+		b.SL.Fatalf("Unable to get @me: %s", err)
 	} else {
 		b.ID = u.ID
-		glog.Infof("Got BotID = %s", b.ID)
+		b.SL.Infof("Got BotID = %s", b.ID)
 	}
 
-	glog.Info("Adding handlers...")
+	b.SL.Info("Adding handlers...")
 	b.Session.AddHandler(b.parseMessage)
 
-	glog.Info("Opening session...")
+	b.SL.Info("Opening session...")
 	if err = b.Session.Open(); err != nil {
-		glog.Fatalf("Unable to open the session: %s", err)
+		b.SL.Fatalf("Unable to open the session: %s", err)
 	}
 
 	b.LegendariesByChar = make(map[string][]*Item)
 
 	WoWItemsMap = make(map[string]*Item)
 
-	glog.Info("Starting guild watcher...")
+	b.SL.Info("Starting guild watcher...")
 	go b.guildWatcher()
 
 	// wait a bit for a guild watcher to start
 	time.Sleep(time.Second)
 
-	glog.Info("Starting legendaries watcher...")
+	b.SL.Info("Starting legendaries watcher...")
 	go b.legendaryWatcher()
 
-	glog.Info("Bot started.")
+	b.SL.Info("Bot started.")
 }
 
 // SendMessage sends the message to the selected channel
 func (b *Bot) SendMessage(chID string, message string) {
 	var err error
-	glog.Infof("SENDING MESSAGE: %s", message)
+	b.SL.Infof("SENDING MESSAGE: %s", message)
 	err = retryOnBadGateway(func() error {
 		return sendFormattedMessage(b.Session, chID, message)
 	})
 	if err != nil {
-		glog.Errorf("Unable to send the message: %s", err)
+		b.SL.Errorf("Unable to send the message: %s", err)
 	}
 	return
 }
@@ -114,10 +117,10 @@ func (b *Bot) parseMessage(s *discordgo.Session, mes *discordgo.MessageCreate) {
 
 func (b *Bot) reactToFile(mes *discordgo.MessageCreate) {
 	// Ask user how to react
-	glog.Info("trying to process the file...")
+	b.SL.Info("trying to process the file...")
 	msgParts := strings.Split(mes.Content, " ")
 	if len(msgParts) != 3 {
-		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SL.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 		return
 	}
@@ -130,7 +133,7 @@ func (b *Bot) reactToFile(mes *discordgo.MessageCreate) {
 	case "!simc":
 		b.simcProfileReporter(mes, command, false, false)
 	default:
-		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SL.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	}
 
@@ -159,7 +162,7 @@ func (b *Bot) reactToCommand(mes *discordgo.MessageCreate) {
 	case "!clean":
 		b.cleanUp(mes)
 	default:
-		glog.Infof("Command is incorrect: %s", mes.Content)
+		b.SL.Infof("Command is incorrect: %s", mes.Content)
 		b.SendMessage(mes.ChannelID, m.ErrorUser)
 	}
 }
