@@ -1,0 +1,17 @@
+[[constraint]]
+  name = "github.com/arteev/fmttab"
+
+[[constraint]]
+  name = "github.com/bwmarrin/discordgo"
+
+[[constraint]]
+  name = "github.com/fiam/gounidecode"
+
+[[constraint]]
+  name = "github.com/golang/glog"
+
+[[constraint]]
+  name = "github.com/juju/ratelimit"
+
+[[constraint]]
+  name = "github.com/spf13/viper"
