@@ -1,18 +1,18 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // UpdateCharacter gets the additional info for the WoW character
-func (char *Character) UpdateCharacter(wg *sync.WaitGroup) {
+func (char *Character) UpdateCharacter(sl *zap.SugaredLogger, wg *sync.WaitGroup) {
 	var err error
 
 	char.Lock()
@@ -22,19 +22,19 @@ func (char *Character) UpdateCharacter(wg *sync.WaitGroup) {
 	char.Unlock()
 
 	if err = char.SetRealmSlugByName(); err != nil {
-		glog.Errorf("Unable to get realm slug for character %s: %s", char.Name, err)
+		sl.Errorf("Unable to get realm slug for character %s: %s", char.Name, err)
 	}
 
-	if err = char.SetArmoryLink(); err != nil {
-		glog.Errorf("Unable to get Armory link for character %s: %s", char.Name, err)
+	if err = char.SetArmoryLink(sl); err != nil {
+		sl.Errorf("Unable to get Armory link for character %s: %s", char.Name, err)
 	}
 
 	if err = char.SetCharacterItems(); err != nil {
-		glog.Errorf("Unable to get items for character %s: %s", char.Name, err)
+		sl.Errorf("Unable to get items for character %s: %s", char.Name, err)
 	}
 
-	if err = char.SetCharacterProfessions(); err != nil {
-		glog.Errorf("Unable to get profs for character %s: %s", char.Name, err)
+	if err = char.SetCharacterProfessions(sl); err != nil {
+		sl.Errorf("Unable to get profs for character %s: %s", char.Name, err)
 	}
 
 	wg.Done()
@@ -64,7 +64,7 @@ func (char *Character) SetRealmSlugByName() (err error) {
 }
 
 // SetArmoryLink gets the Armory link and sets it into the character
-func (char *Character) SetArmoryLink() (err error) {
+func (char *Character) SetArmoryLink(sl *zap.SugaredLogger) (err error) {
 	var shortLink string
 
 	char.Lock()
@@ -72,7 +72,7 @@ func (char *Character) SetArmoryLink() (err error) {
 
 	longLink := fmt.Sprintf(o.ArmoryCharLink, o.GuildRegion, o.GuildLocale[:2], char.RealmSlug, char.Name)
 	if shortLink, err = GetShortLink(longLink); err != nil {
-		glog.Errorf("Unable to get short link for a character: %s", err)
+		sl.Errorf("Unable to get short link for a character: %s", err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (char *Character) SetCharacterItems() (err error) {
 }
 
 // SetCharacterProfessions gets the character professions and sets them into the character
-func (char *Character) SetCharacterProfessions() (err error) {
+func (char *Character) SetCharacterProfessions(sl *zap.SugaredLogger) (err error) {
 	var respJSON []byte
 
 	char.Lock()
@@ -121,7 +121,7 @@ func (char *Character) SetCharacterProfessions() (err error) {
 		longLink := fmt.Sprintf(o.ArmoryProfLink, o.GuildRegion, o.GuildLocale[:2], char.RealmSlug, char.Name, p.EngName)
 
 		if shortLink, pErr := GetShortLink(longLink); pErr != nil {
-			glog.Errorf("Unable to get short link for profession: %s", pErr)
+			sl.Errorf("Unable to get short link for profession: %s", pErr)
 		} else {
 			p.Link = shortLink
 		}
@@ -135,7 +135,7 @@ func (char *Character) SetCharacterProfessions() (err error) {
 }
 
 // SetCharacterNewsFeed gets the character news feed and sets it into the character
-func (char *Character) SetCharacterNewsFeed(mainWG *sync.WaitGroup) {
+func (char *Character) SetCharacterNewsFeed(sl *zap.SugaredLogger, mainWG *sync.WaitGroup) {
 	var (
 		respJSON []byte
 
@@ -151,18 +151,18 @@ func (char *Character) SetCharacterNewsFeed(mainWG *sync.WaitGroup) {
 	apiLink := fmt.Sprintf(o.APICharNewsLink, o.GuildRegion, strings.Replace(char.Realm, " ", "%20", -1),
 		strings.Replace(char.Name, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 	if respJSON, err = Get(apiLink); err != nil {
-		glog.Errorf("Unable to get JSON response: %s", err)
+		sl.Errorf("Unable to get JSON response: %s", err)
 		return
 	}
 
 	if err = char.Unmarshal(respJSON); err != nil {
-		glog.Errorf("Unable to unmarshal character from JSON: %s", err)
+		sl.Errorf("Unable to unmarshal character from JSON: %s", err)
 		return
 	}
 
 	wg.Add(len(char.NewsFeed))
 	for _, n := range char.NewsFeed {
-		go n.updateNews(&wg)
+		go n.updateNews(sl, &wg)
 	}
 	wg.Wait()
 }
@@ -194,7 +194,7 @@ func (char *Character) GetRecentLegendaries() (items []*Item) {
 	return
 }
 
-func (n *News) updateNews(wg *sync.WaitGroup) {
+func (n *News) updateNews(sl *zap.SugaredLogger, wg *sync.WaitGroup) {
 	var (
 		utc       *time.Location
 		eventTime time.Time
@@ -204,7 +204,7 @@ func (n *News) updateNews(wg *sync.WaitGroup) {
 	n.Lock()
 
 	if utc, err = time.LoadLocation(o.GuildTimezone); err != nil {
-		glog.Errorf("Unable to parse location: %s", err)
+		sl.Errorf("Unable to parse location: %s", err)
 		goto out
 	}
 
@@ -214,7 +214,7 @@ func (n *News) updateNews(wg *sync.WaitGroup) {
 	if n.Type == "itemLoot" || n.Type == "LOOT" {
 		item, err := getItemByID(strconv.Itoa(n.ItemID))
 		if err != nil {
-			glog.Errorf("Unable to get item by its ID = %d: %s", n.ItemID, err)
+			sl.Errorf("Unable to get item by its ID = %d: %s", n.ItemID, err)
 			goto out
 		}
 		n.ItemInfo = item

@@ -1,27 +1,25 @@
 package main
 
 import (
-	"flag"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/golang/glog"
-)
-
-// WoWBot is a Discord WoW guild bot
-var (
-	WoWBot *Bot
+	"go.uber.org/zap"
 )
 
 func main() {
-	flag.Parse()
-	glog.CopyStandardLogTo("INFO")
-	glog.Info("Loading config...")
-	LoadConfig()
-	WoWBot = new(Bot)
-	glog.Info("Starting...")
-	WoWBot.Start()
-	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// init logger
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync() // flushes buffer, if any
+	sugar := logger.Sugar()
+
+	sugar.Info("Loading config...")
+	LoadConfig(sugar)
+	wowBot := &Bot{SL: sugar}
+
+	sugar.Info("Starting...")
+	wowBot.Start()
+
+	sugar.Info(http.ListenAndServe("localhost:6060", nil))
 	<-make(chan struct{})
 }

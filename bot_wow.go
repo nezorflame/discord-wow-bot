@@ -1,14 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
 
-	"time"
+	"github.com/pkg/errors"
 
-	"github.com/golang/glog"
+	"time"
 )
 
 func (b *Bot) guildWatcher() {
@@ -22,8 +21,8 @@ func (b *Bot) guildWatcher() {
 
 		b.HighLvlCharacters = make(map[string]*Character)
 
-		if b.Guild, err = GetGuildInfo(); err != nil {
-			glog.Errorf("Unable to get the guild info: %s", err)
+		if err = b.GetGuildInfo(); err != nil {
+			b.SL.Errorf("Unable to get the guild info: %s", err)
 			goto out
 		}
 
@@ -32,7 +31,7 @@ func (b *Bot) guildWatcher() {
 			member.Char.RLock()
 
 			if member.Char.Name == "" {
-				glog.Errorf("Faulty character: %v", member.Char)
+				b.SL.Errorf("Faulty character: %v", member.Char)
 				wg.Done()
 				continue
 			}
@@ -43,10 +42,10 @@ func (b *Bot) guildWatcher() {
 
 			member.Char.RUnlock()
 
-			go member.Char.UpdateCharacter(&wg)
+			go member.Char.UpdateCharacter(b.SL, &wg)
 		}
 		wg.Wait()
-		glog.Info("Characters imported")
+		b.SL.Info("Characters imported")
 
 	out:
 		b.CharMutex.Unlock()
@@ -62,11 +61,11 @@ func (b *Bot) legendaryWatcher() {
 
 		wg.Add(len(b.HighLvlCharacters))
 		for _, char := range b.HighLvlCharacters {
-			go char.SetCharacterNewsFeed(&wg)
+			go char.SetCharacterNewsFeed(b.SL, &wg)
 		}
 		wg.Wait()
 
-		glog.Info("Characters updated with the latest news")
+		b.SL.Info("Characters updated with the latest news")
 
 		for _, char := range b.HighLvlCharacters {
 			legendaries := char.GetRecentLegendaries()
@@ -77,13 +76,13 @@ func (b *Bot) legendaryWatcher() {
 					b.LegendariesByChar[char.Name] = append(b.LegendariesByChar[char.Name], l)
 					msg := fmt.Sprintf(m.Legendary, char.Name, l.Name, l.Link)
 					b.SendMessage(o.GeneralChannelID, msg)
-					// glog.Info(msg)
+					// b.SL.Info(msg)
 				}
 			}
 			char.RUnlock()
 		}
 
-		glog.Infof("Characters checked for legendaries, current item count: %d", len(WoWItemsMap))
+		b.SL.Infof("Characters checked for legendaries, current item count: %d", len(WoWItemsMap))
 
 		b.CharMutex.Unlock()
 		time.Sleep(o.LegendaryCheckPeriod)
@@ -152,7 +151,7 @@ func GetRealmSlug(realmName string) (string, error) {
 }
 
 // GetGuildInfo - function for receiving the guild info
-func GetGuildInfo() (gInfo *GuildInfo, err error) {
+func (b *Bot) GetGuildInfo() (err error) {
 	var (
 		membersJSON []byte
 		membersList []*GuildMember
@@ -161,13 +160,13 @@ func GetGuildInfo() (gInfo *GuildInfo, err error) {
 	apiLink := fmt.Sprintf(o.APIGuildMembersLink, o.GuildRegion, strings.Replace(o.GuildRealm, " ", "%20", -1),
 		strings.Replace(o.GuildName, " ", "%20", -1), o.GuildLocale, o.WoWToken)
 	if membersJSON, err = Get(apiLink); err != nil {
-		glog.Errorf("Unable to get guild info: %s", err)
+		err = errors.Wrap(err, "Unable to get guild info")
 		return
 	}
 
-	gInfo = new(GuildInfo)
+	gInfo := new(GuildInfo)
 	if err = gInfo.Unmarshal(membersJSON); err != nil {
-		glog.Errorf("Unable to unmarshal guild info: %s", err)
+		err = errors.Wrap(err, "Unable to unmarshal guild info")
 	}
 
 	for _, member := range gInfo.MembersList {
@@ -177,6 +176,7 @@ func GetGuildInfo() (gInfo *GuildInfo, err error) {
 	}
 	gInfo.MembersList = membersList
 
+	b.Guild = gInfo
 	return
 }
 
