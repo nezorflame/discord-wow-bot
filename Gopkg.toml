@@ -1,17 +1,23 @@
 [[constraint]]
+  branch = "master"
   name = "github.com/arteev/fmttab"
 
 [[constraint]]
   name = "github.com/bwmarrin/discordgo"
+  version = "v0.18.0"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/fiam/gounidecode"
 
 [[constraint]]
   name = "github.com/juju/ratelimit"
+  version = "v1.0.1"
 
 [[constraint]]
   name = "github.com/spf13/viper"
+  version = "v1.0.0"
 
 [[constraint]]
   name = "go.uber.org/zap"
+  version = "v1.7.1"

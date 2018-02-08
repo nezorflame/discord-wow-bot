@@ -4,7 +4,11 @@
 [[projects]]
   branch = "master"
   name = "github.com/arteev/fmttab"
-  packages = [".","columns","eol"]
+  packages = [
+    ".",
+    "columns",
+    "eol"
+  ]
   revision = "b98bd705822d1a494b1f857dfcfaa80b5b0c3d82"
 
 [[projects]]
@@ -16,8 +20,8 @@
 [[projects]]
   name = "github.com/bwmarrin/discordgo"
   packages = ["."]
-  revision = "0993a94b4e1c3291bed2047f583f34792269355c"
-  version = "v0.16.0"
+  revision = "4a33b9bc7c56cfdb9bb244e33e83cb3941fe2bdc"
+  version = "v0.18.0"
 
 [[projects]]
   branch = "master"
@@ -38,13 +42,24 @@
 
 [[projects]]
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "392dba7d905ed5d04a5794ba89f558b27e2ba1ca"
 
 [[projects]]
   name = "github.com/juju/ratelimit"
   packages = ["."]
-  revision = "5b9ff866471762aa2ab2dced63c9fb6f53921342"
+  revision = "59fac5042749a5afb9af70e813da1dd5474f0167"
+  version = "1.0.1"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -75,7 +90,10 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [".","mem"]
+  packages = [
+    ".",
+    "mem"
+  ]
   revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
 
 [[projects]]
@@ -98,7 +116,8 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "0967fc9aceab2ce9da34061253ac10fb99bba5b2"
+  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
+  version = "v1.0.0"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -114,13 +133,24 @@
 
 [[projects]]
   name = "go.uber.org/zap"
-  packages = [".","buffer","internal/bufferpool","internal/color","internal/exit","zapcore"]
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore"
+  ]
   revision = "35aad584952c3e7020db7b839f6b102de6271f89"
   version = "v1.7.1"
 
 [[projects]]
   name = "golang.org/x/crypto"
-  packages = ["nacl/secretbox","poly1305","salsa20/salsa"]
+  packages = [
+    "nacl/secretbox",
+    "poly1305",
+    "salsa20/salsa"
+  ]
   revision = "7e9105388ebff089b3f99f0ef676ea55a6da3a7e"
 
 [[projects]]
@@ -130,7 +160,14 @@
 
 [[projects]]
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "19e51611da83d6be54ddafce4a4af510cb3e9ea4"
 
 [[projects]]
@@ -141,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0202c57fff4f714b6cccb10c90d4176b5df88f51d036e1aad8b1ede59617b1e8"
+  inputs-digest = "d6db0e48b9e1c31e2e304ebe1da97c67ce52c034288568646563c9c936ca5be9"
   solver-name = "gps-cdcl"
   solver-version = 1
