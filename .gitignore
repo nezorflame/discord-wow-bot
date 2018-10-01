@@ -32,5 +32,10 @@ discord-wow-bot
 debug
 vendor/*
 
-my.db
+# User config and DB
 config.toml
+my.db
+
+# Unneeded files and folders
+.DS_Store
+coverage.txt
