@@ -3,3 +3,7 @@ linters:
     - megacheck
   enable:
     - goimports
+# temporary fix for modules, more info here: 
+run:
+  skip-files:
+    - ".*/pkg/mod/.*$"
